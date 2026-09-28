@@ -14,9 +14,14 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+## 0.1.0-rc.2 — 2026-09-28 — The BCI login ends by itself
+
+The first version published by CI through npm trusted publishing, with provenance.
+
 - BCI: the login ends by itself. Once you reach your bank home, the window opens
   *últimos movimientos* through the bank's own menu, takes the read session and
-  closes, with no step left to you (#4).
+  closes, with no step left to you (#4). If the bank changes that menu, the
+  login stops at once and says so, instead of leaving the window open.
 
 ## 0.1.0-rc.1 — 2026-09-28 — First prerelease: BCI balances and movements from your AI agent
 

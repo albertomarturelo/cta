@@ -1,6 +1,6 @@
 # cta — tu cartola bancaria desde la terminal o tu agente de IA
 
-> ⚠️ **Pre-alpha (0.1.0-rc.1).** Primer prerelease: el servidor MCP funciona de
+> ⚠️ **Pre-alpha (0.1.0-rc.2).** Prerelease: el servidor MCP funciona de
 > punta a punta con BCI; las lecturas desde el CLI llegan en la próxima versión.
 > Decisiones documentadas en [`docs/decisions/`](docs/decisions/_index.md).
 

@@ -1,6 +1,6 @@
 {
   "name": "@albertomarturelo/cta-core",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0-rc.2",
   "type": "module",
   "description": "Shared core for reading your own Chilean bank accounts: domain, tasks, seams and bank drivers. Side effects are injected via seams; Node adapters live behind the ./node subpath (ADR-003).",
   "keywords": [
