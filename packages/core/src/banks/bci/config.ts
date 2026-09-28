@@ -33,6 +33,12 @@ export const BCI = {
     pathPrefix: '/web/fe-orq-mo-personas-re-v',
     homeSuffix: '/home',
     miBancoSegment: '/comp/mi_banco/',
+    // observed at https://personas.bci.cl/web/fe-orq-mo-personas-re-v1-7/comp/mi_banco/cl/bci/aplicaciones/menu/vistas/inicio/miBanco
+    // on 2026-09-28: the user's path to the saldos app — the main frame's link
+    // "Mi Cuenta", then its link "Últimos Movimientos" (both href="#"), which
+    // routes to /comp/embedded?url=… and loads the app with ?token=… in an iframe
+    menuMiCuenta: 'Mi Cuenta',
+    menuUltimosMovimientos: 'Últimos Movimientos',
     // observed on personas.bci.cl on 2026-09-28: the only session cookie at this
     // landing — httpOnly, persistent; JSESSIONID on www.bci.cl no longer exists
     sessionCookie: '__Host-SESSIONID',

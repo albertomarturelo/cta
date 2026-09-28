@@ -33,7 +33,7 @@ const banco = z
 
 const SIGUIENTE_PASO =
   'Termina el ingreso en la ventana del banco (clave y segundo factor, si lo pide). ' +
-  'Al llegar a tu inicio, abre tus últimos movimientos en esa ventana. ' +
+  'Al llegar a tu inicio, cta abre tus últimos movimientos y cierra la ventana solo. ' +
   'Luego consulta bancos: sesionGuardada será true, o sesionHasta dirá hasta cuándo dura la sesión.';
 
 /**
@@ -61,7 +61,7 @@ export function buildServer(tasks: Tasks, version: string): McpServer {
     {
       title: 'Log in to a bank',
       description:
-        "Opens a visible browser at the bank's real login page on the user's machine and returns at once, without waiting for the login. The USER types their credentials and any second factor there; never ask for them and never pass them. Some banks also need the user to open their latest movements in that window once logged in; relay siguientePaso. Once the user says they are done, call bancos: on success sesionGuardada is true (cookies stored) or sesionHasta is set (a session held in memory by this server until that time; reads need no browser until then); loginEnCurso while it runs, ultimoLoginFallido with the bank's message if it failed. Calling login again while one runs opens no new window. Never stores a password; stores session cookies only, or nothing.",
+        "Opens a visible browser at the bank's real login page on the user's machine and returns at once, without waiting for the login. The USER types their credentials and any second factor there; never ask for them and never pass them. Once the user says they are done, call bancos: on success sesionGuardada is true (cookies stored) or sesionHasta is set (a session held in memory by this server until that time; reads need no browser until then); loginEnCurso while it runs, ultimoLoginFallido with the bank's message if it failed. Calling login again while one runs opens no new window. Never stores a password; stores session cookies only, or nothing.",
       inputSchema: { banco },
       annotations: {
         readOnlyHint: false,
