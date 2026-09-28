@@ -1,0 +1,7 @@
+**/dist/**
+node_modules/**
+pnpm-lock.yaml
+# CFD docs + procedures keep their hand-authored formatting
+docs/**
+*.md
+.claude/**

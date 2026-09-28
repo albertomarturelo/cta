@@ -1,0 +1,51 @@
+{
+  "name": "@albertomarturelo/cta-mcp",
+  "version": "0.1.0-rc.1",
+  "type": "module",
+  "description": "MCP (stdio) server to read your own Chilean bank accounts from an AI agent. Each tool is a thin call into @albertomarturelo/cta-core tasks (ADR-003).",
+  "keywords": [
+    "chile",
+    "banco",
+    "bank",
+    "cartola",
+    "bci",
+    "read-only",
+    "mcp",
+    "model-context-protocol",
+    "claude"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/albertomarturelo/cta#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/albertomarturelo/cta.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/albertomarturelo/cta/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "bin": {
+    "cta-mcp": "./dist/main.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@albertomarturelo/cta-core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "playwright": "^1.63.0",
+    "zod": "^4.6.5"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

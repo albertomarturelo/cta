@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# ADR-009 — block a commit message that carries sensitive data.
+exec bash scripts/pii-scan.sh --msg "$1"

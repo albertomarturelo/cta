@@ -1,0 +1,163 @@
+name: Publish packages
+
+# CD for @albertomarturelo/cta-core, -cli and -mcp, triggered by a `v*` tag (ADR-010;
+# lineage: sii publish-core.yml). The three versions move in LOCKSTEP: bump all of
+# packages/{core,cli,mcp}/package.json, add the CHANGELOG.md section, merge, then push
+# the matching tag (`v0.1.0` ⇒ version 0.1.0).
+#
+# Trusted publishing: npm trusts this workflow file for each package and mints a
+# short-lived credential via OIDC, attaching provenance. There is NO npm token in
+# this repo or its secrets — do not add one.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify + publish (core, cli, mcp)
+    runs-on: ubuntu-latest
+    # Read-only on purpose: this job runs `pnpm install` (third-party scripts). The
+    # only extra right is the OIDC token npm exchanges for a publish credential.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # Actions are pinned by commit SHA: this job can publish with provenance, so
+      # a moved tag must not be able to change what runs here.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      # pnpm comes from package.json `packageManager`, matching ci.yml.
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      # Node 24 ships npm 11, which trusted publishing needs. The engines floor
+      # (Node 20, ADR-002) is still what ci.yml tests.
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: npm CLI supports trusted publishing (>= 11.5.1)
+        run: |
+          set -euo pipefail
+          ok() { node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); process.exit(a>11||(a===11&&(b>5||(b===5&&c>=1)))?0:1)' "$(npm --version)"; }
+          ok || npm install -g npm@^11.5.1
+          ok || { echo "::error::npm $(npm --version) cannot do trusted publishing."; exit 1; }
+          echo "npm $(npm --version)"
+
+      - name: Tag matches all package versions (lockstep)
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          for pkg in core cli mcp; do
+            version=$(node -p "require('./packages/${pkg}/package.json').version")
+            if [ "$version" != "$tag" ]; then
+              echo "::error::Tag '${GITHUB_REF_NAME}' does not match packages/${pkg} version '${version}'. Bump all three in lockstep or retag."
+              exit 1
+            fi
+          done
+          echo "Tag ${GITHUB_REF_NAME} matches core, cli and mcp."
+
+      - name: Install (frozen)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (build + tests)
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Test
+        run: pnpm test
+
+      - name: Pack and verify tarballs
+        run: bash scripts/pack.sh "$RUNNER_TEMP/pack" | tee "$RUNNER_TEMP/tarballs.txt"
+
+      - name: Publish to npm (idempotent, with provenance)
+        run: |
+          set -euo pipefail
+          while IFS= read -r tgz; do
+            name=$(tar -xzOf "$tgz" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0)).name')
+            version=$(tar -xzOf "$tgz" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0)).version')
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "${name}@${version} is already on npm — skipping."
+              continue
+            fi
+            # npm 11 refuses a prerelease without an explicit dist-tag; keep
+            # prereleases off `latest`.
+            case "$version" in
+              *-*) npm publish "$tgz" --provenance --access public --tag next ;;
+              *) npm publish "$tgz" --provenance --access public ;;
+            esac
+          done < "$RUNNER_TEMP/tarballs.txt"
+
+  release:
+    name: GitHub release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release; the only job that may write to the repo
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Create the GitHub release from CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+
+          # Idempotent: a re-run, or a release created by hand, is not a failure.
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release ${tag} already exists — nothing to do."
+            exit 0
+          fi
+
+          # Notes = this version's section of CHANGELOG.md, verbatim.
+          notes="$(mktemp)"
+          awk -v ver="$version" '
+            index($0, "## " ver " ") == 1 { inside = 1; next }
+            inside && /^## / { exit }
+            inside {
+              if (!started && $0 ~ /^[[:space:]]*$/) next
+              started = 1
+              print
+            }
+          ' CHANGELOG.md > "$notes"
+
+          # Title from `## <version> — <date> — <headline>`; fall back to the tag.
+          title="${tag}"
+          heading="$(grep -m1 "^## ${version} " CHANGELOG.md || true)"
+          if [ -n "$heading" ]; then
+            derived="$(printf '%s' "$heading" \
+              | sed -E 's/^## ([^ ]+) — [0-9]{4}-[0-9]{2}-[0-9]{2} — (.*)$/v\1 — \2/')"
+            case "$derived" in '## '*) ;; *) title="$derived" ;; esac
+          fi
+
+          # A prerelease (`0.1.0-rc.1`) never becomes the latest release.
+          case "$version" in
+            *-*) kind=--prerelease ;;
+            *) kind=--latest ;;
+          esac
+
+          if [ -s "$notes" ]; then
+            gh release create "$tag" --title "$title" --notes-file "$notes" "$kind"
+          else
+            echo "::warning::No '## ${version}' section in CHANGELOG.md; falling back to generated notes."
+            gh release create "$tag" --title "$title" --generate-notes "$kind"
+          fi

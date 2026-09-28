@@ -1,0 +1,186 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build + Lint + Format + Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # 20 is the engines floor (ADR-002); 24 is the current LTS.
+        node: [20, 24]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      # No `version:` here — action-setup reads it from package.json
+      # `packageManager`, the single source of truth. Pinning it here too
+      # triggers ERR_PNPM_BAD_PM_VERSION on a mismatch.
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: Install (frozen)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck + build (tsc -b), then typecheck tests
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Test
+        run: pnpm test
+
+      - name: Binaries run from the build output
+        run: |
+          set -euo pipefail
+          node packages/cli/dist/main.js --version
+          node packages/mcp/dist/main.js --version
+
+      - name: Packed tarballs are clean (ADR-010)
+        run: bash scripts/pack.sh "$RUNNER_TEMP/pack"
+
+  # Pure git/bash checks — no install needed.
+  validate-context:
+    name: Validate context (ADRs + index + AGENTS.md + boundaries + PII)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0
+
+      - name: ADR index integrity
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in docs/decisions/[0-9]*.md; do
+            name=$(basename "$f")
+            if ! grep -q "$name" docs/decisions/_index.md; then
+              echo "::error file=docs/decisions/_index.md::ADR $name exists but is not listed in the index."
+              fail=1
+            fi
+          done
+          while IFS= read -r ref; do
+            if [ -n "$ref" ] && [ ! -f "docs/decisions/$ref" ]; then
+              echo "::error file=docs/decisions/_index.md::Index links to missing file: $ref"
+              fail=1
+            fi
+          done < <(grep -oE '\([0-9]{3}-[a-zA-Z0-9-]+\.md\)' docs/decisions/_index.md | tr -d '()' | sort -u)
+          exit $fail
+
+      - name: ADR completeness (5 sections, ≤100 lines)
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in docs/decisions/[0-9]*.md; do
+            for section in '## Status' '## Context' '## Decision' '## Alternatives Considered' '## Consequences'; do
+              if ! grep -qxF "$section" "$f"; then
+                echo "::error file=$f::Missing required ADR section '$section'."
+                fail=1
+              fi
+            done
+            if [ "$(wc -l < "$f")" -gt 100 ]; then
+              echo "::error file=$f::ADR exceeds 100 lines."
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: AGENTS.md is a symlink to CLAUDE.md (ADR-001)
+        run: |
+          set -euo pipefail
+          if [ ! -L AGENTS.md ] || [ "$(readlink AGENTS.md)" != "CLAUDE.md" ]; then
+            echo "::error file=AGENTS.md::AGENTS.md must be a symlink to CLAUDE.md so every agent reads the same index."
+            exit 1
+          fi
+          echo "AGENTS.md -> CLAUDE.md"
+
+      - name: CLAUDE.md is a lean index with the standing rules (ADR-001)
+        run: |
+          set -euo pipefail
+          fail=0
+          lines=$(wc -l < CLAUDE.md)
+          if [ "$lines" -gt 100 ]; then
+            echo "::error file=CLAUDE.md::CLAUDE.md has $lines lines; the index must stay ≤100."
+            fail=1
+          fi
+          if ! grep -qxF '## Standing rules' CLAUDE.md; then
+            echo "::error file=CLAUDE.md::Missing the CFD '## Standing rules' section."
+            fail=1
+          fi
+          if grep -nE '^@docs/' CLAUDE.md; then
+            echo "::error file=CLAUDE.md::Use plain markdown links, not @imports."
+            fail=1
+          fi
+          if [ -n "$(git ls-files docs/CURRENT_STATUS.md)" ]; then
+            echo "::error file=docs/CURRENT_STATUS.md::CURRENT_STATUS.md is local session memory and must not be tracked."
+            fail=1
+          fi
+          exit $fail
+
+      - name: Surface boundary (ADR-003)
+        run: |
+          set -euo pipefail
+          if [ ! -d packages ]; then echo "No packages yet — skipping."; exit 0; fi
+          if git grep -nP "from ['\"]@albertomarturelo/cta-core/(?!node['\"])" -- 'packages/cli/**/*.ts' 'packages/mcp/**/*.ts'; then
+            echo "::error::A surface imports a cta-core internal subpath — ADR-003 forbids. Use the task layer (and /node)."
+            exit 1
+          fi
+
+      - name: No evasion tooling (ADR-004)
+        run: |
+          set -euo pipefail
+          if git grep -nE '(puppeteer-extra|stealth|playwright-extra|undetected|2captcha|anti-captcha|capsolver|fingerprint-(injector|generator))' -- ':!docs/' ':!.github/' ':!CLAUDE.md' ':!CONTRIBUTING.md' ':!.claude/'; then
+            echo "::error::Evasion tooling referenced — ADR-004 forbids stealth, CAPTCHA solving and fingerprint spoofing."
+            exit 1
+          fi
+          echo "ADR-004 guard: no evasion tooling."
+
+      - name: Sensitive-data scan — commits and PR text (ADR-009)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_SHA:-}" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            bash scripts/pii-scan.sh --all
+          else
+            bash scripts/pii-scan.sh --range "$BASE_SHA..HEAD"
+          fi
+          if [ -n "${PR_TITLE:-}${PR_BODY:-}" ]; then
+            printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY" | perl scripts/pii-scan.pl --plain --label=pr-text
+          fi
+
+      - name: PII guard (denylist held in a repo secret)
+        env:
+          PII_DENYLIST: ${{ secrets.PII_DENYLIST }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PII_DENYLIST:-}" ]; then
+            echo "PII guard: no denylist secret configured (fork or unset) — skipping."
+            exit 0
+          fi
+          if git grep -nE "$PII_DENYLIST" -- . ; then
+            echo "::error::Real personal data found in tracked files. Replace with synthetic values."
+            exit 1
+          fi
+          echo "PII guard: clean."

@@ -1,0 +1,48 @@
+{
+  "name": "@albertomarturelo/cta-cli",
+  "version": "0.1.0-rc.1",
+  "type": "module",
+  "description": "CLI to read your own Chilean bank accounts (balances and movements) from the terminal. Each command is a thin call into @albertomarturelo/cta-core tasks (ADR-003).",
+  "keywords": [
+    "chile",
+    "banco",
+    "bank",
+    "cartola",
+    "bci",
+    "read-only",
+    "cli"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/albertomarturelo/cta#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/albertomarturelo/cta.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/albertomarturelo/cta/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "bin": {
+    "cta": "./dist/main.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@albertomarturelo/cta-core": "workspace:*",
+    "commander": "^14.0.3",
+    "playwright": "^1.63.0"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

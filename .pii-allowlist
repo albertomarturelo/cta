@@ -1,0 +1,2 @@
+# Synthetic values allowed by scripts/pii-scan.pl (ADR-009). One per line.
+# NEVER add a real RUT or a real email here — this file is public.

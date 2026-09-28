@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# test / coverage
+coverage/
+.vitest/
+
+# cta local state — NEVER commit (sessions, audit log, documents)
+.cta/
+
+# secrets / env
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# local working doc — status is managed locally, not versioned
+docs/CURRENT_STATUS.md

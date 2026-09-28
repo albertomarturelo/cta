@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# ADR-009 — block a commit that adds sensitive data. Enable once per clone:
+#   git config core.hooksPath .githooks
+exec bash scripts/pii-scan.sh --staged

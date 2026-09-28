@@ -1,0 +1,13 @@
+{
+  // Typechecks the test files the package builds exclude; emits nothing.
+  // Runs after `tsc -b`, so cross-package imports resolve to built .d.ts.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "noEmit": true
+  },
+  "include": ["packages/*/src/**/*.ts"]
+}

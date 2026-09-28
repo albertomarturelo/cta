@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# ADR-009 — last local gate: every commit about to be pushed, diffs and messages.
+set -euo pipefail
+zero=0000000000000000000000000000000000000000
+while read -r _lref lsha _rref rsha; do
+  [ "$lsha" = "$zero" ] && continue
+  if [ "$rsha" = "$zero" ]; then
+    base=$(git merge-base "$lsha" origin/main 2>/dev/null || git rev-list --max-parents=0 "$lsha" | tail -1)
+  else base=$rsha; fi
+  bash scripts/pii-scan.sh --range "$base..$lsha"
+done

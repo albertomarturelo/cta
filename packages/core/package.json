@@ -1,0 +1,64 @@
+{
+  "name": "@albertomarturelo/cta-core",
+  "version": "0.1.0-rc.1",
+  "type": "module",
+  "description": "Shared core for reading your own Chilean bank accounts: domain, tasks, seams and bank drivers. Side effects are injected via seams; Node adapters live behind the ./node subpath (ADR-003).",
+  "keywords": [
+    "chile",
+    "banco",
+    "bank",
+    "cartola",
+    "bci",
+    "read-only",
+    "core"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/albertomarturelo/cta#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/albertomarturelo/cta.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/albertomarturelo/cta/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  },
+  "peerDependencies": {
+    "playwright": "^1.63.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
+  }
+}
