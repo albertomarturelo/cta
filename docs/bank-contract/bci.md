@@ -275,7 +275,10 @@ One attended login, then the browser closed and the balance read sent from Node
   `{"codigo":"-1","mensaje":"Ha ocurrido un error interno"}` (GH-38). The home
   also loads `fe-saldoscashback` with a `?token=` on its own, and calls
   `personas.bci.cl/api/ms-supercartola-mb-orq/v1.2/supercartolaBackingMB/state`
-  (a balances summary, session cookie, no bearer) — not used.
+  (a balances summary, session cookie, no bearer) — not used. **Live, same
+  day:** a login in which the user touched nothing after typing the
+  credentials ended by itself through this menu, and `cuentas`, `saldo` and
+  `movimientos` then read over HTTP.
   Reads: one POST per account with those headers only. `401` →
   `NotAuthenticated`; a challenge marker, `403` or a non-JSON `200` →
   `BankBlocked`; anything else → `BankError`. Nothing is retried.
