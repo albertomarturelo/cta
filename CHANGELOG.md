@@ -14,6 +14,10 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+- BCI: the login ends by itself. Once you reach your bank home, the window opens
+  *últimos movimientos* through the bank's own menu, takes the read session and
+  closes, with no step left to you (#4).
+
 ## 0.1.0-rc.1 — 2026-09-28 — First prerelease: BCI balances and movements from your AI agent
 
 The first published build, on the npm `next` dist-tag. The MCP server works end to

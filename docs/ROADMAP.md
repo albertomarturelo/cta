@@ -42,7 +42,7 @@ money-moving operations in v1 (ADR-008).
 | ✅ | `bci` driver: cuentas + saldo | normalized accounts and balances; the bank's own "Ir a últimos Movimientos" link into the app iframe; accounts from the app's own answer, never the RUT; expired session → `NotAuthenticated`; live-verified 2026-09-25 (GH-28) | 007, 012 |
 | ✅ | `bci` driver: movimientos | latest movements per account (50 seen) filtered to the range, with `cobertura` (ADR-014); `tipo` `C`/`A` sign confirmed against the bank's app 2026-09-28; JSF date search later (#27) | 007, 014 |
 | ✅ | **Spike: BCI reads over HTTP** | Observed 2026-09-28 (GH-37): after one attended login, balance reads from a Node `fetch` with only the app's own headers answered `200` for 46 min and `401` past `exp`; Cloudflare on `apilocal`, no challenge; token `exp` ≈ 60 min, claims carry personal identifiers | 004, 015 |
-| ✅ | `bci` driver: HTTP reads | #38: capture the read grant at login, `readMode: 'http'`, reads from Node; entry via the orchestrator's embedded saldos app (`/modernizacion/…`, GH-36); the user opens "últimos movimientos", `cta` clicks nothing; live-verified 2026-09-28 (cuentas, saldo, movimientos) | 012, 015 |
+| ✅ | `bci` driver: HTTP reads | #38: capture the read grant at login, `readMode: 'http'`, reads from Node; entry via the orchestrator's embedded saldos app (`/modernizacion/…`, GH-36); the login opens "Mi Cuenta" → "Últimos Movimientos" itself and closes (#4); live-verified 2026-09-28 (cuentas, saldo, movimientos) | 012, 015 |
 
 ## Surfaces
 

@@ -71,8 +71,12 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
 - **Hostnames live only in the driver's own config module** (`banks/<slug>/config.ts`);
   detection logic is pure (`banks/<slug>/*.ts`, unit-tested); the Playwright glue
   lives in `node/banks/` and loads Playwright lazily.
-- **A login only watches:** the driver opens the bank's page and waits for a
-  decisive signal; it never fills, clicks or submits (ADR-006).
+- **A login only watches until the landing:** the driver opens the bank's page
+  and waits for a decisive signal; it never fills, clicks or submits anything
+  where the user types credentials or a second factor (ADR-006). After the
+  landing, an HTTP-mode driver may follow the bank's own menu, by exact
+  accessible names observed in a probe, to reach the app that hands out the read
+  grant (ADR-015). Never a guessed link: one hit a bank error page (GH-38).
 - **Store only the bank's own cookies;** drop third-party cookies at login.
 - **Never retry** a login, a second factor, or a request the bank rejected.
   Surface the bank's message verbatim and stop (ADR-004).

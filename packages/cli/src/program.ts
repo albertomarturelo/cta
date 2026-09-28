@@ -104,8 +104,8 @@ export async function run(
     .option('--human', 'salida en texto')
     .action((banco: string, opts: { human?: boolean }) => {
       io.stderr(
-        'Inicia sesión en la ventana del banco y, al llegar a tu inicio, abre tus últimos ' +
-          'movimientos: así cta toma la sesión de lectura. No cierres sesión en el banco.',
+        'Inicia sesión en la ventana del banco. Al llegar a tu inicio, cta abre tus últimos ' +
+          'movimientos, toma la sesión de lectura y cierra la ventana solo.',
       );
       return exec(opts, () => tasks.login(banco), human.login);
     });

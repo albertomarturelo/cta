@@ -40,6 +40,7 @@ import { FetchHttpClient } from '../http-client.js';
 
 const FIVE_MINUTES = 5 * 60_000;
 const SESSION_COOKIE_WAIT = 10_000;
+const MENU_WAIT = 30_000;
 
 /**
  * Lazy-load Playwright — an optional peer of the core (STACK). Importing `./node`
@@ -140,6 +141,19 @@ async function sessionCookies(context: BrowserContext): Promise<StoredCookie[]> 
   }
 }
 
+/** Clicks the home's own menu path to the saldos app, once each; false if absent. */
+async function openUltimosMovimientos(page: Page): Promise<boolean> {
+  const link = (name: string) => page.getByRole('link', { name, exact: true }).first();
+  try {
+    // The menu renders a moment after the landing's /home route.
+    await link(BCI.orchestrator.menuMiCuenta).click({ timeout: MENU_WAIT });
+    await link(BCI.orchestrator.menuUltimosMovimientos).click({ timeout: 10_000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The BCI driver (ADR-003), built from `docs/bank-contract/bci.md`. The login
  * only watches, then takes the read grant from the bank's own saldos app; reads
@@ -191,8 +205,9 @@ export class BciDriver implements BankDriver {
   }
 
   /**
-   * Waits for the user to open the saldos app from the bank's home — the login
-   * only watches (ADR-006) — and keeps what the app's own account listing
+   * After the landing, opens the saldos app through the home's own menu — the
+   * credentials were typed by the user, untouched (ADR-006) — and keeps what the
+   * app's own account listing
    * carried: its headers (bearer included) and the accounts it got. `cta` never
    * builds a URL into the app, nor sends, reads or stores the RUT (ADR-012).
    */
@@ -212,8 +227,12 @@ export class BciDriver implements BankDriver {
       timeout: this.options.loginTimeoutMs ?? FIVE_MINUTES,
     });
     listing.catch(() => undefined); // awaited below
-    // The user opens "últimos movimientos"; `cta` clicks nothing. Clicking the old
-    // JSF link inside the new home led to a bank error page (2026-09-28).
+    // The user's own path, observed 2026-09-28: "Mi Cuenta" → "Últimos
+    // Movimientos". Exact names only: a guessed link (the old JSF "Ir a últimos
+    // Movimientos") led to a bank error page. If the menu is not there, nothing
+    // else is tried; the window stays open until the timeout.
+    const page = context.pages().find((p) => isLoggedInUrl(p.url())) ?? context.pages()[0];
+    if (page) await openUltimosMovimientos(page);
 
     let res: Response;
     try {

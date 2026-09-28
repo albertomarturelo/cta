@@ -43,8 +43,8 @@ Luego pídele, por ejemplo, «inicia sesión en bci y dime mi saldo»:
 
 1. Se abre la página real del banco. Inicias sesión tú, con tu clave y, si lo
    pide, tu segundo factor.
-2. Al llegar a tu inicio, **abre tus últimos movimientos** en esa misma ventana.
-   Así `cta` toma la sesión de lectura. No cierres sesión en el banco.
+2. Al llegar a tu inicio, la ventana abre sola tus últimos movimientos, toma la
+   sesión de lectura y se cierra.
 3. Durante cerca de una hora, el agente lee cuentas, saldos y movimientos sin
    abrir el navegador. Cuando la sesión vence, vuelves a iniciar sesión.
 

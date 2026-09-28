@@ -21,7 +21,7 @@ Requires **Node ≥ 20**. You type your credentials, and any second factor, into
 the bank's real page; `cta` never sees or stores them.
 
 ```bash
-cta login bci                     # log in, then open "últimos movimientos" in that window
+cta login bci                     # log in; the window closes by itself
 cta bancos --human
 cta saldo --banco bci --human
 cta movimientos --banco bci --desde 2026-09-01

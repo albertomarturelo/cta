@@ -264,10 +264,18 @@ One attended login, then the browser closed and the balance read sent from Node
 - **Driver rules (GH-38):** after the landing, the login waits for the saldos
   app's own `por-rut` POST from a frame under `/nuevaWeb/` or `/modernizacion/`
   and keeps its ten headers, its account list and the bearer's `exp` (the only
-  claim read). The **user** opens "últimos movimientos" in that window; `cta`
-  clicks nothing. Clicking the old JSF link ("Ir a últimos Movimientos") inside
-  the orchestrator home led to a bank error page, `{"codigo":"-1","mensaje":"Ha
-  ocurrido un error interno"}` (observed 2026-09-28, GH-38).
+  claim read). To open the app, it follows the home's own menu (observed
+  2026-09-28, public #4): the main frame's link **"Mi Cuenta"**, then its link
+  **"Últimos Movimientos"** (both `href="#"`, exact names). That routes to
+  `/web/fe-orq-mo-personas-re-v1-7/comp/embedded?url=…` and loads the app in an
+  iframe at `/modernizacion/fe-saldosultimosmovpersonas/?token=…`; the app then
+  sends `obtenerDatosCliente` and `por-rut` with the bearer. If the menu is
+  missing, nothing else is tried. A guessed link — the old JSF "Ir a últimos
+  Movimientos" inside the orchestrator home — led to a bank error page,
+  `{"codigo":"-1","mensaje":"Ha ocurrido un error interno"}` (GH-38). The home
+  also loads `fe-saldoscashback` with a `?token=` on its own, and calls
+  `personas.bci.cl/api/ms-supercartola-mb-orq/v1.2/supercartolaBackingMB/state`
+  (a balances summary, session cookie, no bearer) — not used.
   Reads: one POST per account with those headers only. `401` →
   `NotAuthenticated`; a challenge marker, `403` or a non-JSON `200` →
   `BankBlocked`; anything else → `BankError`. Nothing is retried.
