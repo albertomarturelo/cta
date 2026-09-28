@@ -269,8 +269,10 @@ One attended login, then the browser closed and the balance read sent from Node
   **"Últimos Movimientos"** (both `href="#"`, exact names). That routes to
   `/web/fe-orq-mo-personas-re-v1-7/comp/embedded?url=…` and loads the app in an
   iframe at `/modernizacion/fe-saldosultimosmovpersonas/?token=…`; the app then
-  sends `obtenerDatosCliente` and `por-rut` with the bearer. If the menu is
-  missing, nothing else is tried. A guessed link — the old JSF "Ir a últimos
+  sends `obtenerDatosCliente` and `por-rut` with the bearer. "Mi Cuenta" is
+  clicked only when "Últimos Movimientos" is not already visible (it may toggle).
+  If the menu is missing, nothing else is tried: the login ends at once with a
+  `BankError`. A guessed link — the old JSF "Ir a últimos
   Movimientos" inside the orchestrator home — led to a bank error page,
   `{"codigo":"-1","mensaje":"Ha ocurrido un error interno"}` (GH-38). The home
   also loads `fe-saldoscashback` with a `?token=` on its own, and calls

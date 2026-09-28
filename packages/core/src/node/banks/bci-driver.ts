@@ -144,10 +144,14 @@ async function sessionCookies(context: BrowserContext): Promise<StoredCookie[]> 
 /** Clicks the home's own menu path to the saldos app, once each; false if absent. */
 async function openUltimosMovimientos(page: Page): Promise<boolean> {
   const link = (name: string) => page.getByRole('link', { name, exact: true }).first();
+  const item = link(BCI.orchestrator.menuUltimosMovimientos);
   try {
     // The menu renders a moment after the landing's /home route.
-    await link(BCI.orchestrator.menuMiCuenta).click({ timeout: MENU_WAIT });
-    await link(BCI.orchestrator.menuUltimosMovimientos).click({ timeout: 10_000 });
+    const menu = link(BCI.orchestrator.menuMiCuenta);
+    await menu.waitFor({ state: 'visible', timeout: MENU_WAIT });
+    // "Mi Cuenta" may toggle: open it only when the item is not showing already.
+    if (!(await item.isVisible())) await menu.click({ timeout: 5_000 });
+    await item.click({ timeout: 10_000 });
     return true;
   } catch {
     return false;
@@ -230,9 +234,15 @@ export class BciDriver implements BankDriver {
     // The user's own path, observed 2026-09-28: "Mi Cuenta" → "Últimos
     // Movimientos". Exact names only: a guessed link (the old JSF "Ir a últimos
     // Movimientos") led to a bank error page. If the menu is not there, nothing
-    // else is tried; the window stays open until the timeout.
+    // else is tried and the login ends at once, saying so.
     const page = context.pages().find((p) => isLoggedInUrl(p.url())) ?? context.pages()[0];
-    if (page) await openUltimosMovimientos(page);
+    if (!page || !(await openUltimosMovimientos(page))) {
+      throw new BankError(
+        this.slug,
+        'Iniciaste sesión, pero no encontré «Mi Cuenta» → «Últimos Movimientos» en tu inicio; ' +
+          'el banco pudo cambiar su menú.',
+      );
+    }
 
     let res: Response;
     try {

@@ -76,7 +76,9 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
   where the user types credentials or a second factor (ADR-006). After the
   landing, an HTTP-mode driver may follow the bank's own menu, by exact
   accessible names observed in a probe, to reach the app that hands out the read
-  grant (ADR-015). Never a guessed link: one hit a bank error page (GH-38).
+  grant (ADR-015). Never a guessed link: one hit a bank error page (GH-38). If
+  the observed menu is missing, the login fails at once and says so; it never
+  leaves the user waiting on a window.
 - **Store only the bank's own cookies;** drop third-party cookies at login.
 - **Never retry** a login, a second factor, or a request the bank rejected.
   Surface the bank's message verbatim and stop (ADR-004).
