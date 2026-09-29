@@ -56,7 +56,10 @@ packages/core/src/
 └── node/          # ./node subpath: FileSessionStore (0600), JsonlAuditSink (receipt fields
                    #   only — an allowlist, stricter than dropping secret keys), SystemClock;
                    #   Playwright-backed drivers (lazy; visible browser, ADR-012);
-                   #   FetchHttpClient for HTTP-mode reads (ADR-015)
+                   #   FetchHttpClient for HTTP-mode reads (ADR-015);
+                   #   holder/: the grant holder — a Unix-socket server over one
+                   #   tasks instance and createRemoteTasks, its client (ADR-015;
+                   #   the surfaces are wired to it in a later change)
 ```
 
 **Dependency direction:** `config`, `errors`, `money`, `dates`, `domain`, `seams` are leaves;
