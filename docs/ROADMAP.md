@@ -30,7 +30,7 @@ money-moving operations in v1 (ADR-008).
 | ✅ | Money + dates | minor-unit conversion, es-CL and decimal parsing, ISO dates, tests (GH-14) | 007 |
 | 📋 | Output contract | shared `emit(data, humanFn)`, JSON default, structured errors | 007 |
 | ✅ | Bank resolution | required `--banco` validated against the registry, in one function (`resolveBank`, GH-14) | 011 |
-| 🚧 | Shared grant holder | CTA-2: local daemon, `0600` Unix socket; started by `cta login` or the MCP `login`; one session for both surfaces; exits at `exp` or on logout; grant in memory only | 015 |
+| ✅ | Shared grant holder | CTA-2: local daemon, `0600` Unix socket; started by `cta login` or the MCP `login`; one session for both surfaces; exits when idle (after `exp`, logout or a block); grant in memory only; live-verified 2026-09-28 (each CLI command a separate process) | 015 |
 
 ## BCI driver (first bank)
 
