@@ -1,7 +1,7 @@
 # cta — tu cartola bancaria desde la terminal o tu agente de IA
 
-> ⚠️ **Pre-alpha (0.1.0-rc.2).** Prerelease: el servidor MCP funciona de
-> punta a punta con BCI; las lecturas desde el CLI llegan en la próxima versión.
+> ⚠️ **Pre-alpha.** El CLI y el MCP funcionan de punta a punta con BCI y
+> comparten la misma sesión.
 > Decisiones documentadas en [`docs/decisions/`](docs/decisions/_index.md).
 
 `cta` lee **tu saldo y tus movimientos (la cartola)** de tu propia cuenta bancaria
@@ -56,10 +56,10 @@ cta saldo --banco bci --human
 cta movimientos --banco bci --desde 2026-09-01
 ```
 
-En esta versión, cada comando del CLI es un proceso aparte y no reutiliza la
-sesión del anterior, así que las lecturas de BCI desde el CLI responden
-`NotAuthenticated`. La sesión compartida entre el CLI y el MCP llega en la
-próxima versión.
+La sesión es una sola para el CLI y el MCP: si inicias sesión desde Claude
+Desktop, `cta saldo` en la terminal la usa, y al revés. La guarda en memoria un
+pequeño proceso local de `cta`, que se cierra solo cuando la sesión vence o
+cuando haces `cta logout bci`.
 
 ## Qué NO hace
 

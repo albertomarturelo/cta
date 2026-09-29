@@ -40,7 +40,7 @@ const SIGUIENTE_PASO =
  * The `cta-mcp` server: each tool is a thin call into a core task (ADR-003). No
  * tool accepts a password, clave, RUT or second-factor code (ADR-006); login opens
  * a visible browser on the user's machine, and reads do too unless the bank's
- * driver reads over HTTP with the session this server holds (ADR-012, ADR-015).
+ * driver reads over HTTP with the session the local holder keeps (ADR-012, ADR-015).
  */
 export function buildServer(tasks: Tasks, version: string): McpServer {
   const server = new McpServer({ name: 'cta', version });
@@ -61,7 +61,7 @@ export function buildServer(tasks: Tasks, version: string): McpServer {
     {
       title: 'Log in to a bank',
       description:
-        "Opens a visible browser at the bank's real login page on the user's machine and returns at once, without waiting for the login. The USER types their credentials and any second factor there; never ask for them and never pass them. Once the user says they are done, call bancos: on success sesionGuardada is true (cookies stored) or sesionHasta is set (a session held in memory by this server until that time; reads need no browser until then); loginEnCurso while it runs, ultimoLoginFallido with the bank's message if it failed. Calling login again while one runs opens no new window. Never stores a password; stores session cookies only, or nothing.",
+        "Opens a visible browser at the bank's real login page on the user's machine and returns at once, without waiting for the login. The USER types their credentials and any second factor there; never ask for them and never pass them. Once the user says they are done, call bancos: on success sesionGuardada is true (cookies stored) or sesionHasta is set (a session held in memory by cta's local session holder until that time, shared with the cta CLI on this machine; reads need no browser until then); loginEnCurso while it runs, ultimoLoginFallido with the bank's message if it failed. Calling login again while one runs opens no new window. Never stores a password; stores session cookies only, or nothing.",
       inputSchema: { banco },
       annotations: {
         readOnlyHint: false,
@@ -80,7 +80,7 @@ export function buildServer(tasks: Tasks, version: string): McpServer {
     {
       title: 'Forget a bank session',
       description:
-        'Deletes the stored session cookies of one bank on this machine and forgets a session held in memory. It does not sign out at the bank, nor cancel a login still open (loginEnCurso: true); that one saves its session when the user finishes.',
+        'Deletes the stored session cookies of one bank on this machine and ends a session held in memory, for the cta CLI too. It does not sign out at the bank, nor cancel a login still open (loginEnCurso: true); that one saves its session when the user finishes.',
       inputSchema: { banco },
       annotations: {
         readOnlyHint: false,

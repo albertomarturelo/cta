@@ -26,6 +26,8 @@ _Each lands with the first unit that uses it._
   short-lived visible window per command; headless only where a driver's
   contract shows it works — ADR-012). `http` drivers read with Node's built-in
   `fetch` and the grant from the login (ADR-015); no HTTP library is added.
+  The grant holder uses only Node built-ins (`node:net` Unix socket,
+  `node:child_process` to spawn it detached); no IPC library is added.
   **An optional peer of
   `cta-core`**, lazy-loaded by the `./node` subpath; the CLI and MCP packages
   depend on it directly. No stealth plugins, ever (ADR-004).

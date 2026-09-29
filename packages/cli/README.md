@@ -27,8 +27,8 @@ cta saldo --banco bci --human
 cta movimientos --banco bci --desde 2026-09-01
 ```
 
-**Known limit in 0.1.0-rc.2:** BCI keeps its read session in the memory of the
-process that logged in, and each CLI command is a new process, so CLI reads answer
-`NotAuthenticated`. The MCP server (`@albertomarturelo/cta-mcp`) works end to
-end. The shared session lands in the next release. See the
+The read session is shared with the MCP server (`@albertomarturelo/cta-mcp`): a
+small local `cta` process keeps it in memory, never on disk, and serves both
+over a private socket. It starts with the first login and exits once the
+session ends (`exp`, `cta logout bci`, or a block). See the
 [roadmap](https://github.com/albertomarturelo/cta/blob/main/docs/ROADMAP.md).

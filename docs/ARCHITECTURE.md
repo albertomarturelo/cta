@@ -57,9 +57,10 @@ packages/core/src/
                    #   only — an allowlist, stricter than dropping secret keys), SystemClock;
                    #   Playwright-backed drivers (lazy; visible browser, ADR-012);
                    #   FetchHttpClient for HTTP-mode reads (ADR-015);
-                   #   holder/: the grant holder — a Unix-socket server over one
-                   #   tasks instance and createRemoteTasks, its client (ADR-015;
-                   #   the surfaces are wired to it in a later change)
+                   #   holder/: the grant holder (ADR-015) — daemon.ts (spawned
+                   #   detached, exits when idle), server.ts (Unix socket, 0600),
+                   #   client.ts (createRemoteTasks), launch.ts (createHolderTasks:
+                   #   what the CLI and the MCP compose)
 ```
 
 **Dependency direction:** `config`, `errors`, `money`, `dates`, `domain`, `seams` are leaves;
@@ -72,10 +73,12 @@ driver.
 - **MCP:** `cta-mcp` over stdio; tools mirror the CLI verbs, read tools marked
   `readOnlyHint`. Login opens a visible browser window on the user's machine
   (ADR-006), so an agent's bank access starts in plain sight. Reads open one too
-  for `headed` drivers (ADR-012); `http` drivers (BCI) read with the grant this
-  process holds in memory until its `exp` (ADR-015). Until the shared holder
-  lands (#39), each process holds its own: the MCP server keeps it across
-  tools, a CLI command loses it when it exits.
+  for `headed` drivers (ADR-012); `http` drivers (BCI) read with the grant the
+  local **grant holder** keeps in memory until its `exp` (ADR-015). The holder
+  is one daemon per user, on `~/.cta/holder.sock` (`0600`): the first `login`
+  from the CLI or the MCP starts it, both surfaces read through it, and it exits
+  once it holds no session and no login in flight. With no holder running,
+  status and reads answer locally (no live session).
   MCP `login` returns once the window is open; the login ends in the background,
   one per bank at a time, and `bancos` reports how it went (ADR-013).
 - **CLI:** an agent with a shell runs `cta … | jq`. JSON is the default output.

@@ -51,6 +51,11 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
   bank's own app; reads go through the `HttpClient` seam with the grant's
   headers only — no cookies, no browser headers made up, no retry, no browser
   fallback.
+- **One grant holder per user** (ADR-015): surfaces compose `createHolderTasks`,
+  never a second tasks instance of their own for HTTP-mode reads. Only `login`
+  and `startLogin` may spawn the holder; status and reads fall back to a local
+  tasks instance when none runs. The holder's socket is `0600` in `~/.cta/`
+  (`0700`) and serves the task methods only; it exits when idle.
 - **The read grant never leaves memory** (ADR-015): not in the session store,
   the audit sink, logs, errors or any output. Only its `exp` claim is decoded;
   tests build token-shaped strings at run time, never as literals (ADR-009).
