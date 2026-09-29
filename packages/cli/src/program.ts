@@ -104,8 +104,9 @@ export async function run(
     .option('--human', 'salida en texto')
     .action((banco: string, opts: { human?: boolean }) => {
       io.stderr(
-        'Inicia sesión en la ventana del banco. Al llegar a tu inicio, cta abre tus últimos ' +
-          'movimientos, toma la sesión de lectura y cierra la ventana solo.',
+        'Se abrirá una ventana del navegador de cta con la página del banco ' +
+          '(en macOS se llama «Google Chrome for Testing»; si no la ves, búscala con Cmd+Tab). ' +
+          'Inicia sesión ahí; al llegar a tu inicio, la ventana se cierra sola y este comando termina.',
       );
       return exec(opts, () => tasks.login(banco), human.login);
     });
