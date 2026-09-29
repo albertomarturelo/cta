@@ -1,6 +1,6 @@
 {
   "name": "@albertomarturelo/cta-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "CLI to read your own Chilean bank accounts (balances and movements) from the terminal. Each command is a thin call into @albertomarturelo/cta-core tasks (ADR-003).",
   "keywords": [
