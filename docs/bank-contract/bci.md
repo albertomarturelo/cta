@@ -287,6 +287,12 @@ One attended login, then the browser closed and the balance read sent from Node
   CTA-2):** the login ended by itself through the menu; `bancos`, `cuentas`,
   `saldo` and `movimientos` each ran as a separate `cta` process through the
   shared holder; `logout` ended the session for all, and a later `saldo` exited 3.
+  **Menu timing (2026-09-29, CTA-6):** a click on "Últimos Movimientos" made
+  right after the landing was accepted but did nothing, and the login timed
+  out. The driver now waits for the `/comp/mi_banco/…` route and a quiet
+  network (at most 15 s), and checks the click routed to `/comp/embedded`
+  (one more click if it did not). Live the same day: the login ended by itself
+  and a `saldo` from another process read over HTTP.
   Reads: one POST per account with those headers only. `401` →
   `NotAuthenticated`; a challenge marker, `403` or a non-JSON `200` →
   `BankBlocked`; anything else → `BankError`. Nothing is retried.
