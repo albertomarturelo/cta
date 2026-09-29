@@ -145,8 +145,12 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
 ## Commits & PRs
 
 - Conventional Commits, subject ≤72 chars, one topic per commit, English.
-- Branch `<type>/GH-<n>-<slug>`, open under its final name (renaming closes the PR).
-- `Closes #<n>` in the PR body. One work unit per PR.
+- Work units are draft items `CTA-<n>` in the private Project 3, never public
+  issues (ADR-016). Branch `<type>/CTA-<n>-<slug>`, open under its final name
+  (renaming closes the PR). `Refs CTA-<n>` in commits and the PR body; move the
+  item to `Done` by hand on merge. One work unit per PR.
+- **A public PR stands on its own:** title and body explain the change through
+  the code, ADRs and contract; context that needs the private item stays there.
 - **Stacked PRs** (a PR based on another's branch): merge the bottom one
   **without** `--delete-branch`, rebase the next onto `main` from its old base
   commit (`git rebase --onto origin/main <old-base-sha>`), retarget it to `main`,

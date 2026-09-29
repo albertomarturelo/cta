@@ -16,5 +16,7 @@ Do ALL of the following, before the session's final commit:
    `/decision:new` before closing.
 5. **Ship tracked `docs/` changes in the SAME commit/PR as the code** — context
    ships with code.
+6. **Move the Project item** (`CTA-<n>`) to `In review` when its PR opens and to
+   `Done` when it merges — no keyword closes a draft item (ADR-016).
 
 Then output a one-paragraph session summary suitable for a PR description.

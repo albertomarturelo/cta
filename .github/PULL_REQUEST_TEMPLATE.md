@@ -4,13 +4,13 @@
 
 <!-- 1–3 sentences: what changes and why. -->
 
-## Linked issue
+## Linked work item
 
-Closes #<!-- N -->
+Refs CTA-<!-- N --> <!-- private Project item (ADR-016); outside contributors: Closes #N of your public issue -->
 
 ## Acceptance criteria
 
-<!-- Verbatim from the issue. Tick as items land. -->
+<!-- From the work item. Tick as items land. -->
 
 - [ ] <!-- behavior -->
 - [ ] <!-- tests -->

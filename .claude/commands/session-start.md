@@ -9,7 +9,9 @@ Read the following, in order, then produce a brief summary:
 2. `docs/decisions/_index.md` — recent decisions that may affect current work.
 3. `docs/ROADMAP.md` — what is shipped (✅), in progress (🚧), blocked (🔒),
    planned (📋), and which spike is pending (💭).
-4. `git log --oneline -10` and `gh issue list --repo albertomarturelo/cta --state open`
+4. `git log --oneline -10` and the open work items of the private Project
+   (ADR-016): `gh project item-list 3 --owner albertomarturelo --format json
+   --limit 500 --jq '.items[] | select(.status != "Done") | [.iD, .status, .title] | @tsv'`
    — what actually moved last, and what is open. (If the GitHub repo does not
    exist yet, say so and skip the issue list.)
 
