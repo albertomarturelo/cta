@@ -14,12 +14,24 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+## 0.1.0 — 2026-09-28 — First stable: one BCI session for your terminal and your AI agent
+
+The first version on the npm `latest` dist-tag. Log in to BCI once, from the
+terminal or from Claude Desktop; the window closes by itself, and for about an
+hour both the CLI and the MCP read accounts, balances and movements without a
+browser. Everything stays on your machine, and nothing but the bank's page ever
+sees your credentials.
+
 - **The CLI reads BCI too, and shares the session with the MCP.** A small local
   `cta` process keeps the read session in memory and serves both surfaces over a
   private socket (`~/.cta/holder.sock`, owner-only). Log in from Claude Desktop
   and `cta saldo --banco bci` works in the terminal, or the other way around.
   It starts with the first login and exits on its own when the session ends,
   after `cta logout`, or after a blocked read (ADR-015).
+- Known limit: after upgrading `cta`, a session process started by the old
+  version keeps running until it ends (about two minutes after the session
+  does). Run `cta logout bci` and wait that long, or log in again after it
+  exits, to get the new version's behavior.
 
 ## 0.1.0-rc.2 — 2026-09-28 — The BCI login ends by itself
 

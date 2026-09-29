@@ -5,7 +5,7 @@ agent (Claude Desktop, Claude Code, any MCP client) read your **own** Chilean ba
 accounts — balances and movements. A thin surface over
 [`@albertomarturelo/cta-core`](https://www.npmjs.com/package/@albertomarturelo/cta-core).
 
-> ⚠️ **Pre-alpha and unofficial.** Not affiliated with, sponsored or endorsed by
+> ⚠️ **0.x and unofficial.** Not affiliated with, sponsored or endorsed by
 > any bank. Automating access to your own account may breach your bank's terms,
 > and **the bank may block your access or your device**. Provided "as is", without
 > warranty (MIT). Read-only: it never moves money.
@@ -16,7 +16,7 @@ credentials yourself. The `login` tool returns as soon as the window opens.
 ## Install
 
 ```bash
-npm i -g @albertomarturelo/cta-mcp@next
+npm i -g @albertomarturelo/cta-mcp
 npx playwright install chromium
 cta-mcp --version
 ```

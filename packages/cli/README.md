@@ -4,7 +4,7 @@ The `cta` command: read your **own** Chilean bank accounts — balances and
 movements (the *cartola*) — from the terminal, as JSON by default. A thin surface
 over [`@albertomarturelo/cta-core`](https://www.npmjs.com/package/@albertomarturelo/cta-core).
 
-> ⚠️ **Pre-alpha and unofficial.** Not affiliated with, sponsored or endorsed by
+> ⚠️ **0.x and unofficial.** Not affiliated with, sponsored or endorsed by
 > any bank. Automating access to your own account may breach your bank's terms,
 > and **the bank may block your access or your device**. Provided "as is", without
 > warranty (MIT). Read-only: it never moves money.
@@ -12,7 +12,7 @@ over [`@albertomarturelo/cta-core`](https://www.npmjs.com/package/@albertomartur
 ## Install
 
 ```bash
-npm i -g @albertomarturelo/cta-cli@next
+npm i -g @albertomarturelo/cta-cli
 npx playwright install chromium
 cta --version
 ```

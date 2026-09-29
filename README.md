@@ -1,6 +1,6 @@
 # cta — tu cartola bancaria desde la terminal o tu agente de IA
 
-> ⚠️ **Pre-alpha.** El CLI y el MCP funcionan de punta a punta con BCI y
+> ⚠️ **Versión 0.x, en desarrollo.** El CLI y el MCP funcionan de punta a punta con BCI y
 > comparten la misma sesión.
 > Decisiones documentadas en [`docs/decisions/`](docs/decisions/_index.md).
 
@@ -18,12 +18,12 @@ Claude Code y cualquier cliente MCP). Todo corre **en tu computador**:
 **Banco soportado primero:** BCI. Otros bancos se suman como *drivers*
 independientes, idealmente contribuidos por quien tiene cuenta en ellos.
 
-## Instalar (prerelease)
+## Instalar
 
 Requiere **Node ≥ 20**.
 
 ```bash
-npm i -g @albertomarturelo/cta-mcp@next @albertomarturelo/cta-cli@next
+npm i -g @albertomarturelo/cta-mcp @albertomarturelo/cta-cli
 npx playwright install chromium   # el navegador donde inicias sesión
 ```
 
