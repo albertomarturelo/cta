@@ -142,19 +142,51 @@ async function sessionCookies(context: BrowserContext): Promise<StoredCookie[]> 
 }
 
 /** Clicks the home's own menu path to the saldos app, once each; false if absent. */
-async function openUltimosMovimientos(page: Page): Promise<boolean> {
-  const link = (name: string) => page.getByRole('link', { name, exact: true }).first();
-  const item = link(BCI.orchestrator.menuUltimosMovimientos);
+async function openUltimosMovimientos(page: Page): Promise<string | undefined> {
+  const all = (name: string) => page.getByRole('link', { name, exact: true });
+  // Only a visible match counts: the home may also carry hidden copies of its
+  // menu (e.g. a collapsed mobile one), and the first match can be one of them.
+  const visible = (name: string) => all(name).filter({ visible: true }).first();
+  const menuName = BCI.orchestrator.menuMiCuenta;
+  const itemName = BCI.orchestrator.menuUltimosMovimientos;
+  // The home carries two copies of each link (2 found, both "visible" on
+  // 2026-09-28), and "Últimos Movimientos" lives inside the "Mi Cuenta" menu.
+  // So open the first "Mi Cuenta" copy that takes a click, then click the item
+  // inside that same menu: the nearest ancestor of "Mi Cuenta" that holds it.
+  // Page clicks only; no bank request is repeated.
+  let step = `«${menuName}»`;
   try {
     // The menu renders a moment after the landing's /home route.
-    const menu = link(BCI.orchestrator.menuMiCuenta);
-    await menu.waitFor({ state: 'visible', timeout: MENU_WAIT });
-    // "Mi Cuenta" may toggle: open it only when the item is not showing already.
-    if (!(await item.isVisible())) await menu.click({ timeout: 5_000 });
-    await item.click({ timeout: 10_000 });
-    return true;
+    await visible(menuName).waitFor({ state: 'visible', timeout: MENU_WAIT });
+    const menus = all(menuName);
+    const n = await menus.count();
+    for (let i = 0; i < n; i++) {
+      const menu = menus.nth(i);
+      if (!(await menu.isVisible())) continue;
+      const opened = await menu
+        .click({ timeout: 5_000 })
+        .then(() => true)
+        .catch(() => false);
+      if (!opened) continue;
+      step = `«${itemName}»`;
+      const within = menu.locator(
+        `xpath=ancestor::*[.//a[normalize-space(.)=${JSON.stringify(itemName)}]][1]`,
+      );
+      const item = within.getByRole('link', { name: itemName, exact: true }).first();
+      const clicked = await item
+        .click({ timeout: 10_000 })
+        .then(() => true)
+        .catch(() => false);
+      if (clicked) return undefined;
+    }
+    throw new Error('menu path not taken');
   } catch {
-    return false;
+    // Where it stopped, in counts only: enough to fix the selector from a report.
+    const seen = async (name: string) =>
+      `${await all(name).count()}/${await all(name).filter({ visible: true }).count()}`;
+    const menu = await seen(menuName).catch(() => '?');
+    const item = await seen(itemName).catch(() => '?');
+    return `${step}; encontrados/visibles: «${menuName}» ${menu}, «${itemName}» ${item}`;
   }
 }
 
@@ -236,11 +268,12 @@ export class BciDriver implements BankDriver {
     // Movimientos") led to a bank error page. If the menu is not there, nothing
     // else is tried and the login ends at once, saying so.
     const page = context.pages().find((p) => isLoggedInUrl(p.url())) ?? context.pages()[0];
-    if (!page || !(await openUltimosMovimientos(page))) {
+    const failedAt = page ? await openUltimosMovimientos(page) : 'sin página';
+    if (failedAt !== undefined) {
       throw new BankError(
         this.slug,
-        'Iniciaste sesión, pero no encontré «Mi Cuenta» → «Últimos Movimientos» en tu inicio; ' +
-          'el banco pudo cambiar su menú.',
+        'Iniciaste sesión, pero no pude abrir «Mi Cuenta» → «Últimos Movimientos» en tu inicio ' +
+          `(se detuvo en ${failedAt}); el banco pudo cambiar su menú.`,
       );
     }
 

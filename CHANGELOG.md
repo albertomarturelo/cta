@@ -14,6 +14,13 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+- **The CLI reads BCI too, and shares the session with the MCP.** A small local
+  `cta` process keeps the read session in memory and serves both surfaces over a
+  private socket (`~/.cta/holder.sock`, owner-only). Log in from Claude Desktop
+  and `cta saldo --banco bci` works in the terminal, or the other way around.
+  It starts with the first login and exits on its own when the session ends,
+  after `cta logout`, or after a blocked read (ADR-015).
+
 ## 0.1.0-rc.2 — 2026-09-28 — The BCI login ends by itself
 
 The first version published by CI through npm trusted publishing, with provenance.

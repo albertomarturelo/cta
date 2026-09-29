@@ -5,6 +5,7 @@ import {
   FileSessionStore,
   JsonlAuditSink,
   SystemClock,
+  createHolderTasks,
   defaultDrivers,
   readPackageVersion,
 } from '@albertomarturelo/cta-core/node';
@@ -17,11 +18,14 @@ if (process.argv.includes('--version') || process.argv.includes('-V')) {
   process.stdout.write(`${version}\n`);
 } else {
   // Composition root (ADR-003). STDOUT belongs to the MCP protocol from here on.
-  const tasks = createTasks({
-    drivers: defaultDrivers(),
-    sessions: new FileSessionStore(),
-    audit: new JsonlAuditSink(),
-    clock: new SystemClock(),
+  // Tasks go through the shared grant holder, the same one the CLI uses (ADR-015).
+  const tasks = createHolderTasks({
+    local: createTasks({
+      drivers: defaultDrivers(),
+      sessions: new FileSessionStore(),
+      audit: new JsonlAuditSink(),
+      clock: new SystemClock(),
+    }),
   });
   await buildServer(tasks, version).connect(new StdioServerTransport());
 }

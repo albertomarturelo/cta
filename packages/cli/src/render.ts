@@ -40,8 +40,8 @@ export const human = {
   login: (r: { banco: string; guardadaEn: string; sesionHasta?: string }) =>
     r.sesionHasta === undefined
       ? `Sesión guardada para ${r.banco} (${r.guardadaEn}).`
-      : `Sesión de ${r.banco} abierta hasta ${r.sesionHasta}, solo en la memoria de este proceso: ` +
-        'los comandos siguientes del CLI todavía no pueden usarla; el MCP sí.',
+      : `Sesión de ${r.banco} abierta hasta ${r.sesionHasta}, en memoria, compartida por el CLI ` +
+        'y el MCP de este equipo.',
   logout: (r: { banco: string }) => `Sesión de ${r.banco} eliminada de este equipo.`,
   bancos: (r: { bancos: readonly BancoInfo[] }) =>
     r.bancos.length === 0

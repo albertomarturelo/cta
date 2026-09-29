@@ -6,6 +6,8 @@ export { SystemClock } from './node/system-clock.js';
 export { startHolderServer } from './node/holder/server.js';
 export type { HolderServer, HolderServerOptions } from './node/holder/server.js';
 export { createRemoteTasks } from './node/holder/client.js';
+export { createHolderTasks, spawnHolder } from './node/holder/launch.js';
+export type { HolderTasksOptions } from './node/holder/launch.js';
 export {
   defaultHolderSocket,
   HolderAlreadyRunning,
