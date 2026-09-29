@@ -5,7 +5,7 @@ Chilean bank accounts — balances and movements (the *cartola*) — locally, wi
 credentials typed only into the bank's real login page. Holds the domain, the
 tasks and one driver per bank; the CLI and the MCP server are thin surfaces over it.
 
-> ⚠️ **Pre-alpha and unofficial.** Not affiliated with, sponsored or endorsed by
+> ⚠️ **0.x and unofficial.** Not affiliated with, sponsored or endorsed by
 > any bank. Automating access to your own account may breach your bank's terms,
 > and **the bank may block your access or your device**. Provided "as is", without
 > warranty (MIT). Read-only: it never moves money.
