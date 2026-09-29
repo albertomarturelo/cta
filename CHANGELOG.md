@@ -14,6 +14,17 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+## 0.1.1 — 2026-09-29 — A BCI login you can find, that finishes on its own
+
+- The login window now comes to the front, and the terminal and the agent say
+  which window to look for (on macOS, «Google Chrome for Testing»; Cmd+Tab if
+  you do not see it) and that it closes by itself.
+- BCI: the login opens *últimos movimientos* reliably. It waits for your home to
+  finish loading, opens the "Mi Cuenta" section from its arrow when the text
+  alone does not open it, and checks that the page really moved on before
+  taking the session. Before, the window could stay on your home until the
+  login timed out.
+
 ## 0.1.0 — 2026-09-28 — First stable: one BCI session for your terminal and your AI agent
 
 The first version on the npm `latest` dist-tag. Log in to BCI once, from the
