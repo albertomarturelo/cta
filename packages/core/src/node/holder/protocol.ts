@@ -85,6 +85,13 @@ export class HolderUnavailable extends CtaError {
   }
 }
 
+/** A request the holder does not serve: unknown method, bad arguments or not JSON. */
+export class HolderBadRequest extends CtaError {
+  constructor() {
+    super('La sesión local de cta rechazó una petición no válida.', 'HOLDER_BAD_REQUEST', 2);
+  }
+}
+
 /** Another holder already serves this socket. */
 export class HolderAlreadyRunning extends CtaError {
   constructor() {

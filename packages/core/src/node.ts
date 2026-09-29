@@ -9,6 +9,7 @@ export { createRemoteTasks } from './node/holder/client.js';
 export {
   defaultHolderSocket,
   HolderAlreadyRunning,
+  HolderBadRequest,
   HolderError,
   HolderUnavailable,
   HOLDER_METHODS,

@@ -133,7 +133,7 @@ describe('grant holder (ADR-015)', () => {
     await serve(holder().tasks);
     expect(await raw(JSON.stringify({ method: 'transferir', args: [] }))).toMatchObject({
       ok: false,
-      error: { code: 'UNEXPECTED' },
+      error: { code: 'HOLDER_BAD_REQUEST' },
     });
     expect(
       await raw(JSON.stringify({ method: 'saldo', args: [{ nested: { deep: 1 } }] })),

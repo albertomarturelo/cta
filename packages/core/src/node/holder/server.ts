@@ -5,6 +5,7 @@ import { dirname } from 'node:path';
 import type { Tasks } from '../../tasks/tasks.js';
 import {
   HolderAlreadyRunning,
+  HolderBadRequest,
   isHolderMethod,
   MAX_REQUEST_BYTES,
   toWireError,
@@ -57,11 +58,11 @@ async function answer(tasks: Tasks, line: string): Promise<HolderResponse> {
   try {
     req = JSON.parse(line);
   } catch {
-    return { ok: false, error: toWireError(new Error('BadRequest')) };
+    return { ok: false, error: toWireError(new HolderBadRequest()) };
   }
   const { method, args } = (req ?? {}) as { method?: unknown; args?: unknown };
   if (!isHolderMethod(method) || !validArgs(args)) {
-    return { ok: false, error: toWireError(new Error('BadRequest')) };
+    return { ok: false, error: toWireError(new HolderBadRequest()) };
   }
   try {
     const fn = tasks[method] as (...a: unknown[]) => Promise<unknown>;
