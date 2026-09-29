@@ -90,6 +90,15 @@ Code** — follow them by hand or with any agent:
 - Never automate the login form, never retry a failed login, and stop at the
   first block or challenge (ADR-004).
 
+## Merging into `main`
+
+`main` is protected by a repository ruleset: changes land only through a pull
+request with one approval and the three required CI checks (build + lint +
+format + test on Node 20 and 24, and the context gate); force-push and deletion
+are blocked, and merged branches are deleted. The maintainer, who cannot approve
+their own PR, merges with the admin bypass (`gh pr merge --squash --admin`) —
+only once CI is green.
+
 ## Releasing (maintainer)
 
 Releases follow ADR-010. Only CI publishes, through npm trusted publishing — there
@@ -106,7 +115,9 @@ is no npm token anywhere.
 
 **One-time setup per package** on npmjs.com → package → Settings → Trusted
 publishing: GitHub Actions, owner `albertomarturelo`, repository `cta`, workflow
-`publish.yml`. If npm requires the package to exist first, publish its first
+`publish.yml`, **Environment name empty** (the publish job declares none) and
+**"Allow npm publish" checked** (the workflow runs `npm publish`, not
+`npm stage publish`). If npm requires the package to exist first, publish its first
 version once from your machine with 2FA, from a clean build so no stale output
 ships (`rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo && pnpm build &&
 bash scripts/pack.sh /tmp/cta-pack`, then `npm publish <tarball> --access public`),

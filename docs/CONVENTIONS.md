@@ -149,6 +149,10 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
   issues (ADR-016). Branch `<type>/CTA-<n>-<slug>`, open under its final name
   (renaming closes the PR). `Refs CTA-<n>` in commits and the PR body; move the
   item to `Done` by hand on merge. One work unit per PR.
+- **`main` is protected** (ruleset "Protect main"): PR only, one approval, the
+  three CI checks required, no force-push or deletion; branches are deleted on
+  merge. The maintainer merges their own PRs with the admin bypass
+  (`gh pr merge --squash --admin`), never with CI red.
 - **A public PR stands on its own:** title and body explain the change through
   the code, ADRs and contract; context that needs the private item stays there.
 - **Stacked PRs** (a PR based on another's branch): merge the bottom one
