@@ -32,8 +32,9 @@ const banco = z
   .describe('Bank slug or Chilean bank code, e.g. "bci" or "016". Required; see the bancos tool.');
 
 const SIGUIENTE_PASO =
-  'Termina el ingreso en la ventana del banco (clave y segundo factor, si lo pide). ' +
-  'Al llegar a tu inicio, cta abre tus últimos movimientos y cierra la ventana solo. ' +
+  'Se abrió una ventana del navegador de cta con la página del banco (en macOS se llama ' +
+  '«Google Chrome for Testing»; si no la ves, búscala con Cmd+Tab). Inicia sesión ahí, con tu ' +
+  'clave y el segundo factor si lo pide. Al llegar a tu inicio, la ventana se cierra sola. ' +
   'Luego consulta bancos: sesionGuardada será true, o sesionHasta dirá hasta cuándo dura la sesión.';
 
 /**

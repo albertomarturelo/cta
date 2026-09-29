@@ -216,6 +216,9 @@ export class BciDriver implements BankDriver {
       const outcome = watchLogin(context, page, this.options.loginTimeoutMs ?? FIVE_MINUTES);
       // A failed first load is not retried; the watcher still decides the outcome.
       await page.goto(BCI.loginEntryUrl).catch(() => undefined);
+      // The holder that opens this window runs in the background, so macOS
+      // leaves it behind the active app; ask for the front, once.
+      await page.bringToFront().catch(() => undefined);
       const result = await outcome;
 
       switch (result.kind) {
