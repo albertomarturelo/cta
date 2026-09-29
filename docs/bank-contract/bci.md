@@ -269,10 +269,13 @@ One attended login, then the browser closed and the balance read sent from Node
   **"Últimos Movimientos"** (both `href="#"`, exact names). That routes to
   `/web/fe-orq-mo-personas-re-v1-7/comp/embedded?url=…` and loads the app in an
   iframe at `/modernizacion/fe-saldosultimosmovpersonas/?token=…`; the app then
-  sends `obtenerDatosCliente` and `por-rut` with the bearer. "Mi Cuenta" is
-  clicked only when "Últimos Movimientos" is not already visible (it may toggle).
-  If the menu is missing, nothing else is tried: the login ends at once with a
-  `BankError`. A guessed link — the old JSF "Ir a últimos
+  sends `obtenerDatosCliente` and `por-rut` with the bearer. The home carries **two copies** of each link, and Playwright reports both as
+  visible (observed 2026-09-28): a closed dropdown's "Últimos Movimientos" counts
+  as visible yet takes no click. The driver therefore clicks the first "Mi
+  Cuenta" copy that accepts a click, then "Últimos Movimientos" **inside that
+  menu** (the nearest ancestor of "Mi Cuenta" that holds it). If the path is not
+  taken, the login ends at once with a `BankError` that names the step and the
+  found/visible counts. A guessed link — the old JSF "Ir a últimos
   Movimientos" inside the orchestrator home — led to a bank error page,
   `{"codigo":"-1","mensaje":"Ha ocurrido un error interno"}` (GH-38). The home
   also loads `fe-saldoscashback` with a `?token=` on its own, and calls
@@ -280,7 +283,10 @@ One attended login, then the browser closed and the balance read sent from Node
   (a balances summary, session cookie, no bearer) — not used. **Live, same
   day:** a login in which the user touched nothing after typing the
   credentials ended by itself through this menu, and `cuentas`, `saldo` and
-  `movimientos` then read over HTTP.
+  `movimientos` then read over HTTP. **Live through the grant holder (same day,
+  CTA-2):** the login ended by itself through the menu; `bancos`, `cuentas`,
+  `saldo` and `movimientos` each ran as a separate `cta` process through the
+  shared holder; `logout` ended the session for all, and a later `saldo` exited 3.
   Reads: one POST per account with those headers only. `401` →
   `NotAuthenticated`; a challenge marker, `403` or a non-JSON `200` →
   `BankBlocked`; anything else → `BankError`. Nothing is retried.
