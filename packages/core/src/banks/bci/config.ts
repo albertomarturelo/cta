@@ -33,6 +33,9 @@ export const BCI = {
     pathPrefix: '/web/fe-orq-mo-personas-re-v',
     homeSuffix: '/home',
     miBancoSegment: '/comp/mi_banco/',
+    // observed at https://personas.bci.cl/web/fe-orq-mo-personas-re-v1-7/comp/embedded on
+    // 2026-09-28: where "Últimos Movimientos" routes before loading the saldos app
+    embeddedSegment: '/comp/embedded',
     // observed at https://personas.bci.cl/web/fe-orq-mo-personas-re-v1-7/comp/mi_banco/cl/bci/aplicaciones/menu/vistas/inicio/miBanco
     // on 2026-09-28: the user's path to the saldos app — the main frame's link
     // "Mi Cuenta", then its link "Últimos Movimientos" (both href="#"), which

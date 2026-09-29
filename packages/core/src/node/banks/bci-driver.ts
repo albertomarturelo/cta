@@ -154,9 +154,18 @@ async function openUltimosMovimientos(page: Page): Promise<string | undefined> {
   // So open the first "Mi Cuenta" copy that takes a click, then click the item
   // inside that same menu: the nearest ancestor of "Mi Cuenta" that holds it.
   // Page clicks only; no bank request is repeated.
+  const routed = (url: URL) => url.pathname.includes(BCI.orchestrator.embeddedSegment);
   let step = `«${menuName}»`;
   try {
-    // The menu renders a moment after the landing's /home route.
+    // The landing's /home routes on to /comp/mi_banco/…, whose menu takes clicks
+    // only once the page has settled: a click made earlier was accepted but did
+    // nothing (2026-09-29). So wait for that route and a quiet network first.
+    await page
+      .waitForURL((u) => u.pathname.includes(BCI.orchestrator.miBancoSegment), {
+        timeout: MENU_WAIT,
+      })
+      .catch(() => undefined);
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
     await visible(menuName).waitFor({ state: 'visible', timeout: MENU_WAIT });
     const menus = all(menuName);
     const n = await menus.count();
@@ -173,11 +182,22 @@ async function openUltimosMovimientos(page: Page): Promise<string | undefined> {
         `xpath=ancestor::*[.//a[normalize-space(.)=${JSON.stringify(itemName)}]][1]`,
       );
       const item = within.getByRole('link', { name: itemName, exact: true }).first();
-      const clicked = await item
-        .click({ timeout: 10_000 })
-        .then(() => true)
-        .catch(() => false);
-      if (clicked) return undefined;
+      // A click proves nothing by itself: the menu must route to /comp/embedded.
+      // One more click only if the first led nowhere; nothing the bank answered
+      // is repeated.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const clicked = await item
+          .click({ timeout: 10_000 })
+          .then(() => true)
+          .catch(() => false);
+        if (!clicked) break;
+        const went = await page
+          .waitForURL(routed, { timeout: 10_000 })
+          .then(() => true)
+          .catch(() => false);
+        if (went) return undefined;
+        step = `«${itemName}» (sin navegar)`;
+      }
     }
     throw new Error('menu path not taken');
   } catch {
