@@ -11,11 +11,13 @@ gh pr diff <n> --repo albertomarturelo/cta
 ## 2. Load context indices only
 
 `CLAUDE.md`, `docs/CONVENTIONS.md`, `docs/decisions/_index.md`, the linked
-issue's AC + "ADRs to load", and each of those ADRs. No full source reads.
+work item's AC + "ADRs to load" (Project 3, `/issue:start`), and each of those ADRs. No full source reads.
 
 ## 3. Checklist
 
-**Workflow** — branch `<type>/GH-<n>-<slug>`; `Closes #<n>`; Conventional
+**Workflow** — branch `<type>/CTA-<n>-<slug>`; `Refs CTA-<n>` in the PR body,
+and nothing in the public PR text that needs the private item to make sense
+(ADR-016); Conventional
 Commits ≤72; English; **no AI attribution anywhere** (blocks merge).
 
 **Architecture (ADR-002/003)** — surfaces import only the task layer and

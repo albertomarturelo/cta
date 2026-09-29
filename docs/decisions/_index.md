@@ -20,3 +20,4 @@ their lineage inside each record.
 | 013 | [A login can run in the background — one per bank, tracked in core](013-login-runs-in-the-background.md) | Superseded in part by 015 | 2026-09-25 |
 | 014 | [Movements carry their coverage — a bank may return less than the range](014-movements-carry-their-coverage.md) | Accepted | 2026-09-25 |
 | 015 | [Reads over HTTP with the bank-issued token, held in memory](015-reads-over-http-with-the-bank-issued-token.md) | Accepted | 2026-09-28 |
+| 016 | [Development work items live in a private GitHub Project](016-work-items-in-a-private-project.md) | Accepted | 2026-09-28 |

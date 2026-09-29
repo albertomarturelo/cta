@@ -18,7 +18,8 @@ context layer first — it is how the project stays coherent and safe.
 > **Issue references.** `GH-<n>` (and the `#<n>` in the same texts) in ADRs,
 > docs and code comments written before this repository went public point to
 > the project's pre-publication tracker, which is not public. This repository's
-> own issues and pull requests start again at #1.
+> own issues and pull requests start again at #1. `CTA-<n>` names a maintainer
+> work item in a private Project (ADR-016).
 
 ## Adding a bank
 
@@ -66,8 +67,10 @@ Code** — follow them by hand or with any agent:
 
 ## Workflow rules
 
-- Branch `<type>/GH-<n>-<slug>`, opened under its final name.
-- `Closes #<n>` in the PR body. One work unit per PR.
+- Maintainer work units are private Project items `CTA-<n>` (ADR-016): branch
+  `<type>/CTA-<n>-<slug>`, `Refs CTA-<n>` in the PR body. Outside contributors:
+  open a Bug report or Feature request issue and use `Closes #<n>`. One work
+  unit per PR.
 - Conventional Commits, subject ≤72 chars, English everywhere — except the
   README and what `cta` shows the user (help, `--human` output, error messages),
   which are Spanish (CONVENTIONS).
