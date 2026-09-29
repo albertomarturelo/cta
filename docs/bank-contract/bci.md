@@ -292,7 +292,11 @@ One attended login, then the browser closed and the balance read sent from Node
   out. The driver now waits for the `/comp/mi_banco/…` route and a quiet
   network (at most 15 s), and checks the click routed to `/comp/embedded`
   (one more click if it did not). Live the same day: the login ended by itself
-  and a `saldo` from another process read over HTTP.
+  and a `saldo` from another process read over HTTP. **The "Mi Cuenta"
+  accordion sometimes opens only from its chevron** at the right end of the row
+  (reported the same day): the driver checks that "Últimos Movimientos" is the
+  topmost element at its own centre, and if not, clicks the row's right edge
+  once before clicking the item.
   Reads: one POST per account with those headers only. `401` →
   `NotAuthenticated`; a challenge marker, `403` or a non-JSON `200` →
   `BankBlocked`; anything else → `BankError`. Nothing is retried.

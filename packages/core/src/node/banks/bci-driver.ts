@@ -1,4 +1,4 @@
-import type { Browser, BrowserContext, BrowserType, Page, Response } from 'playwright';
+import type { Browser, BrowserContext, BrowserType, Locator, Page, Response } from 'playwright';
 
 import { matchCuenta } from '../../accounts/match-cuenta.js';
 import { BCI } from '../../banks/bci/config.js';
@@ -141,6 +141,33 @@ async function sessionCookies(context: BrowserContext): Promise<StoredCookie[]> 
   }
 }
 
+/**
+ * Whether an element is really on screen: scrolled into view, with a size, and
+ * the topmost element at its own centre. A closed accordion's item passes
+ * Playwright's visibility check yet fails this one.
+ */
+async function isReallyShown(el: Locator): Promise<boolean> {
+  await el.scrollIntoViewIfNeeded({ timeout: 2_000 }).catch(() => undefined);
+  return el
+    .evaluate(
+      (node) => {
+        const r = node.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return false;
+        // Runs in the page; the core compiles without the DOM lib, hence the cast.
+        const doc = (
+          globalThis as unknown as {
+            document: { elementFromPoint(x: number, y: number): typeof node | null };
+          }
+        ).document;
+        const hit = doc.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return hit !== null && (hit === node || node.contains(hit));
+      },
+      undefined,
+      { timeout: 2_000 },
+    )
+    .catch(() => false);
+}
+
 /** Clicks the home's own menu path to the saldos app, once each; false if absent. */
 async function openUltimosMovimientos(page: Page): Promise<string | undefined> {
   const all = (name: string) => page.getByRole('link', { name, exact: true });
@@ -177,11 +204,25 @@ async function openUltimosMovimientos(page: Page): Promise<string | undefined> {
         .then(() => true)
         .catch(() => false);
       if (!opened) continue;
-      step = `«${itemName}»`;
       const within = menu.locator(
         `xpath=ancestor::*[.//a[normalize-space(.)=${JSON.stringify(itemName)}]][1]`,
       );
       const item = within.getByRole('link', { name: itemName, exact: true }).first();
+      // The accordion sometimes opens only from its chevron, at the right end of
+      // the "Mi Cuenta" row (2026-09-29). Open means the item itself is what
+      // sits at its own centre; otherwise click the row's right edge once.
+      if (!(await isReallyShown(item))) {
+        step = `«${menuName}» (acordeón cerrado)`;
+        const row = menu.locator('xpath=..');
+        const box = await row.boundingBox().catch(() => null);
+        if (box) {
+          await row
+            .click({ position: { x: box.width - 12, y: box.height / 2 }, timeout: 5_000 })
+            .catch(() => undefined);
+        }
+        if (!(await isReallyShown(item))) continue;
+      }
+      step = `«${itemName}»`;
       // A click proves nothing by itself: the menu must route to /comp/embedded.
       // One more click only if the first led nowhere; nothing the bank answered
       // is repeated.
