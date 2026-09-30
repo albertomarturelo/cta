@@ -281,12 +281,16 @@ async function openUltimosMovimientos(page: Page): Promise<string | undefined> {
  */
 async function openMisMovimientosTarjeta(page: Page): Promise<string | undefined> {
   const all = (name: string) => page.getByRole('link', { name, exact: true });
+  // «Tarjetas» is an <a> with no href (probe, 2026-09-29), so it has no link
+  // role: it is found as an anchor whose whole text is the name.
+  const anchor = (name: string) =>
+    page.locator('a').filter({ hasText: new RegExp(`^\\s*${name}\\s*$`) });
   const { menuTarjetas, menuTarjetasCredito, menuMisMovimientosTarjeta } = BCI.orchestrator;
   let step = `«${menuTarjetas}»`;
   try {
     // Two copies of a home link are common (contract): the first visible one
     // that takes a click wins.
-    const tarjetas = all(menuTarjetas).filter({ visible: true });
+    const tarjetas = anchor(menuTarjetas).filter({ visible: true });
     await tarjetas.first().waitFor({ state: 'visible', timeout: MENU_WAIT });
     let opened = false;
     for (let i = 0; i < (await tarjetas.count()) && !opened; i++) {
@@ -331,8 +335,10 @@ async function openMisMovimientosTarjeta(page: Page): Promise<string | undefined
     }
     throw new Error('menu path not taken');
   } catch {
-    const seen = async (name: string) =>
-      `${await all(name).count()}/${await all(name).filter({ visible: true }).count()}`;
+    const seen = async (name: string) => {
+      const found = name === menuTarjetas ? anchor(name) : all(name);
+      return `${await found.count()}/${await found.filter({ visible: true }).count()}`;
+    };
     const counts = await Promise.all(
       [menuTarjetas, menuTarjetasCredito, menuMisMovimientosTarjeta].map(
         async (name) => `«${name}» ${await seen(name).catch(() => '?')}`,

@@ -43,8 +43,9 @@ export const BCI = {
     menuMiCuenta: 'Mi Cuenta',
     menuUltimosMovimientos: 'Últimos Movimientos',
     // observed at https://personas.bci.cl/web/fe-orq-mo-personas-re-v1-7/comp/mi_banco/cl/bci/aplicaciones/menu/vistas/inicio/miBanco
-    // on 2026-09-29: the user's path to the cards app — the link "Tarjetas", then the
-    // group "Tarjetas de crédito", then its link "Mis movimientos", which routes to
+    // on 2026-09-29: the user's path to the cards app — the anchor "Tarjetas" (an
+    // <a> with no href, so no link role), then the group link "Tarjetas de
+    // crédito", then its link "Mis movimientos" (both href="#"), which routes to
     // /comp/embedded and loads the cards app. "Tarjetas de débito" also holds a
     // "Mis tarjetas", so the item is taken inside the credit group only.
     menuTarjetas: 'Tarjetas',
