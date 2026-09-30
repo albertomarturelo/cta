@@ -59,8 +59,13 @@ import { FetchHttpClient } from '../http-client.js';
 const FIVE_MINUTES = 5 * 60_000;
 const SESSION_COOKIE_WAIT = 10_000;
 const MENU_WAIT = 30_000;
+// The cards step runs on a page already settled by the saldos capture, so each
+// menu entry gets a short wait: a changed menu closes the window in seconds
+// instead of leaving it idle (2026-09-29 live run).
+const CARDS_MENU_WAIT = 10_000;
 // The cards app sent its card list at once on two runs and ~20 s after loading
-// on another (contract): a bounded wait, never a second click.
+// on another (contract): a bounded wait, never a second click. It is armed
+// before the menu clicks, so it covers them too; a menu failure never waits on it.
 const CARDS_WAIT = 45_000;
 
 /**
@@ -291,7 +296,7 @@ async function openMisMovimientosTarjeta(page: Page): Promise<string | undefined
     // Two copies of a home link are common (contract): the first visible one
     // that takes a click wins.
     const tarjetas = anchor(menuTarjetas).filter({ visible: true });
-    await tarjetas.first().waitFor({ state: 'visible', timeout: MENU_WAIT });
+    await tarjetas.first().waitFor({ state: 'visible', timeout: CARDS_MENU_WAIT });
     let opened = false;
     for (let i = 0; i < (await tarjetas.count()) && !opened; i++) {
       opened = await tarjetas
@@ -301,7 +306,7 @@ async function openMisMovimientosTarjeta(page: Page): Promise<string | undefined
         .catch(() => false);
     }
     if (!opened) throw new Error('menu path not taken');
-    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
+    await page.waitForLoadState('networkidle', { timeout: CARDS_MENU_WAIT }).catch(() => undefined);
 
     step = `«${menuTarjetasCredito}»`;
     // "Tarjetas de débito" holds items of the same kind, so the item is taken
@@ -310,7 +315,7 @@ async function openMisMovimientosTarjeta(page: Page): Promise<string | undefined
     await groups
       .filter({ visible: true })
       .first()
-      .waitFor({ state: 'visible', timeout: MENU_WAIT });
+      .waitFor({ state: 'visible', timeout: CARDS_MENU_WAIT });
     const n = await groups.count();
     for (let i = 0; i < n; i++) {
       const group = groups.nth(i);
