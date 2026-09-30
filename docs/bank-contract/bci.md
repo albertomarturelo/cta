@@ -1,6 +1,6 @@
 # BCI (`bci`, code 016)
 
-Last verified: 2026-09-28 (landing move, HTTP reads, live driver reads — GH-36, GH-37, GH-38); 2026-09-25 (login, session, reads, expiry — see GH-6, GH-8, GH-15; live `cta cuentas`, `saldo`, `movimientos` runs through the driver — GH-28, GH-29; open items under "Not yet observed")
+Last verified: 2026-09-29 (credit cards, CTA-8); 2026-09-28 (landing move, HTTP reads, live driver reads — GH-36, GH-37, GH-38); 2026-09-25 (login, session, reads, expiry — see GH-6, GH-8, GH-15; live `cta cuentas`, `saldo`, `movimientos` runs through the driver — GH-28, GH-29; open items under "Not yet observed")
 
 Observed with a plain, visible Playwright Chromium (1.63), no flags, no stealth,
 the login typed by hand. Values below are shapes; identifiers in `<angle>` or
@@ -222,10 +222,94 @@ cod_convenio, client_id, scid, scope, authorities`. The token carries the RUT;
   statements filtered by year, not movements. `fechaDesde`/`fechaHasta` exist but
   were sent empty.
 
-### Credit cards (not in this contract yet)
+### Credit cards (observed 2026-09-29, CTA-8, ADR-017)
 
-Card reads are planned for a future `tarjetas` surface. Their paths are
-re-observed and recorded here with that surface's ADR.
+Three probes, one login each; the user opened every view by hand. The first
+two only watched; the third also sent the cards app's own reads from Node
+after the browser closed. Names, shapes and app constants only; no account,
+card or amount value was recorded.
+
+- **Token source:** right after the landing, the orchestrator itself sends
+  `POST personas.bci.cl/api/api-auth-personas/v1/connectors/td` (cookie, no
+  bearer) → `{cpi, access_token}`. That `access_token` (a JWT, 15 claims, `exp`
+  60 min after issue) is the `?token=` of every embedded app and the bearer of
+  **every** `apilocal` call seen: saldos, card movements, statements, debit
+  (probes 1–2 matched it by hash with the auth scheme stripped). In probe 3
+  the app's full `authorization` value did **not** equal `Bearer <that
+  token>` as a string — the scheme's spelling or spacing differs (not
+  recorded). **Driver rule:** reuse the app's `authorization` header exactly
+  as captured; never rebuild it from the token.
+- **Per-app headers differ:** the same ten header names as the saldos app, but
+  `application-id`, `x-ibm-client-id`, `reference-service` and
+  `reference-operation` have **other values** in each app (compared by hash,
+  2026-09-29). `accept`, `content-type`, `channel`, `tracking-id` matched.
+  The cards app's constants: `application-id: fe-mismovimientos`,
+  `channel: 110`, `reference-service: mismovimientos`,
+  `reference-operation: mismovimientos`, `content-type: application/json`;
+  `x-ibm-client-id` a 24-character id of its own; `tracking-id` a one-digit
+  value, the same on every request of the app; `origin-addr` an IPv4 address
+  (the client's — *inferred*). **Driver rule:** the cards reads send the cards
+  app's own headers, captured from its own request — never the saldos app's,
+  and never made up (`origin-addr` is the bank's own value).
+- **Menu path:** on the orchestrator home, the link «Tarjetas», then «Tarjetas
+  de crédito» (a menu group), then its link «Mis movimientos» → `/comp/embedded`
+  loads `personas.bci.cl/andes/fe-mismovimientos/` (hash route
+  `mis-movimientos`). A «Mis tarjetas» under «Tarjetas de débito» is a separate
+  debit app. On one run the app sent its card list only ~20 s after loading.
+- **Card list (the app asks, `cta` reads the answer):**
+  `GET {apilocal}/operaciones-y-ejecucion/tarjetas/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/`
+  → `[{numeroTarjeta: "<digits>", numeroDeCuenta: "<digits>", descripcionLogo:
+  "<digits>", tipoCliente: "P", descripcionSelectorTarjeta: "<label> **** 0000"}]`
+  **One entry per plastic, not per card account:** 3 items for an owner with
+  2 credit card accounts, one of which has an **additional card**. Compared in
+  memory (2026-09-29): two entries share `numeroDeCuenta` and
+  `descripcionLogo`; no entry's last 4 digits matched the debit card (listed,
+  alone, by its own app). Both entries of the shared account answered
+  `informacion-tdc` with the same list sizes; the movements' `tipo` word
+  differed (7 vs 9 letters, titular vs additional). `numeroTarjeta` has **4
+  digits** — not a full card number — and is still kept inside the driver.
+  The app's own `informacion-tdc` bodies took both values from this list (6/6).
+- **Everything for one card:**
+  `POST {apilocal}/…/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/informacion-tdc`,
+  body `{numeroCuenta, numeroTarjeta}` (from the list) → `200`:
+  - national (integers, whole pesos): `cupoNacional`, `cupoUtilizadoNacional`,
+    `cupoDisponibleNacional`, `montoFacturadoNacional`, `pagoMinimo`,
+    `totalAbonosNacional`, `totalCargosNacional`;
+  - international (**USD with 2 decimals**, or integers when whole):
+    `cupoInternacional`, `cupoUtilizadoInternacional`,
+    `cupoDisponibleInternacional`, `montoFacturadoInternacional` (`null` for a
+    card with no international billing), `totalAbonosinternacional`,
+    `totalCargosinternacional` (lower-case `i`, as sent);
+  - dates as `D/M/YYYY` **without zero padding**: `fechaFacturacion`,
+    `fechaProximaFacturacion`, `fechaVencimiento`, `fechaVencimientoNoFacturado`,
+    `fechaFacturacionAnterior`, `fechaActual`; text `periodoFacturacion`,
+    `periodoEnCurso` ("<word> <word> D/M/YYYY <word>"), `mesFacturacionActual`,
+    `mesFacturacionAnterior`, `periodosFacturacion` (6 strings);
+  - movements in four lists: `facturadosNacionales`, `facturadosInternacionales`,
+    `noFacturadosNacional`, `noFacturadosInternacional` (a list may be `null`,
+    with `errorInternacional: {mensaje, codigo}`), each item `{monto, descripcion,
+    fecha: "D/M/YYYY", numeroCuota, totalCuotas, numeroTarjeta, codigoReferencia,
+    tipo: "<Titular|Adicional-like word> **** 0000", ciudad, temporal, adicional,
+    codigoAutorizacion}` plus always-`null` location fields. `monto` is
+    **signed** (both signs seen in each list); `tipo` names the card, not the sign.
+  - The app's Facturados / No facturados / Internacional tabs send nothing: they
+    filter this one answer.
+- **From Node (observed 2026-09-29, probe 3):** after the browser closed,
+  `GET mov-tdc/` and one `POST informacion-tdc` per entry (2 s apart), sent with
+  Node `fetch` and only the cards app's ten headers — no cookies, no browser
+  headers — answered **`200 application/json`** at 19.8–20.1 min after the
+  token was issued; `cf-ray` present, no challenge. The list from Node was
+  identical to the app's. Nothing was retried.
+- **Inferred, to confirm on the live run:** positive `monto` = cargo, negative =
+  abono/payment; `fechaVencimiento` = due date of the last billed statement,
+  `fechaVencimientoNoFacturado` = due date of the current period.
+- **Not used (ADR-017):** the home's «Tarjetas» view reads
+  `personas.bci.cl/api/…/bff-tdc-mantenimiento-posicion-webpersonas/v1.0/cuenta/tarjetas/titulares`
+  and `…/bff-tarjetaswebpersona/v3.0/tarjetas-credito/consultar-cupo` with the
+  session **cookie** and no bearer. The «Estado de cuenta» app
+  (`/andes/fe-estadocuenta/`, `…/ms-estadocuentapersonasweb-exp/v2.0/estado-cuenta-tc`,
+  `…/consultar-periodos` → 13 ISO dates) is a third app with its own headers.
+  The debit app's request carries the RUT in its body.
 
 ### Reads from a Node HTTP client (observed 2026-09-28, GH-37)
 
