@@ -91,6 +91,23 @@ export class AmbiguousAccount extends CtaError {
   }
 }
 
+/** `--tarjeta` matches no card, or cards of more than one account. Usage error. */
+export class NoSuchCard extends CtaError {
+  constructor(
+    readonly banco: string,
+    readonly selector: string,
+    ambiguous = false,
+  ) {
+    super(
+      ambiguous
+        ? `'${selector}' coincide con tarjetas de más de una cuenta de '${banco}'.`
+        : `Ninguna tarjeta de '${banco}' termina en '${selector}'. Ejecuta: cta tarjetas --banco ${banco}`,
+      'NO_SUCH_CARD',
+      2,
+    );
+  }
+}
+
 /** `--desde`/`--hasta` is not a calendar date, or the range is reversed. Usage error. */
 export class InvalidDateRange extends CtaError {
   constructor(detail: string) {

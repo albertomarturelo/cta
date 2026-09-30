@@ -88,5 +88,6 @@ export function createHolderTasks(options: HolderTasksOptions): Tasks {
     cuentas: via('cuentas'),
     saldo: via('saldo'),
     movimientos: via('movimientos'),
+    tarjetas: via('tarjetas'),
   };
 }

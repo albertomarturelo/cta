@@ -93,6 +93,23 @@ describe('grant holder (ADR-015)', () => {
     expect(JSON.stringify([login, await mcp.bancos()])).not.toContain('synthetic');
   });
 
+  it('serves tarjetas with its flag across the socket (ADR-017)', async () => {
+    const { tasks, driver } = holder({ tarjetas: { tarjetas: [], movimientos: [] } });
+    await serve(tasks);
+    const cli = createRemoteTasks(socketPath);
+    await cli.login('bci');
+    expect(await cli.tarjetas('bci', { movimientos: true })).toEqual({
+      banco: 'bci',
+      tarjetas: [],
+      movimientos: [],
+    });
+    expect(await cli.tarjetas('bci')).toEqual({ banco: 'bci', tarjetas: [] });
+    expect(driver.calls).toEqual(['login', 'tarjetas:*:mov', 'tarjetas:*:-']);
+    expect(
+      await raw(JSON.stringify({ method: 'tarjetas', args: ['bci', { movimientos: 1 }] })),
+    ).toMatchObject({ ok: false, error: { code: 'HOLDER_BAD_REQUEST' } });
+  });
+
   it('rebuilds the holder-side error with its message, code and exit code', async () => {
     const { tasks } = holder();
     await serve(tasks);

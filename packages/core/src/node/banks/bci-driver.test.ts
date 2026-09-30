@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { BankBlocked, NotAuthenticated } from '../../errors/errors.js';
+import { BankBlocked, BankError, NoSuchCard, NotAuthenticated } from '../../errors/errors.js';
 import type { HttpAnswer, HttpClient, ReadGrant } from '../../seams/seams.js';
 import { BciDriver } from './bci-driver.js';
 
@@ -15,6 +15,44 @@ const grant: ReadGrant = {
   ],
 };
 const auth = { kind: 'grant' as const, grant };
+
+// The cards app's own headers differ from the saldos app's (contract); invented values.
+const cardsHeaders = { authorization: 'Bearer synthetic', 'application-id': 'cards-app' };
+const card = (cardKey: string, accountKey: string, last4: string) => ({
+  cardKey,
+  accountKey,
+  label: `Tarjeta Ficticia **** ${last4}`,
+  last4,
+});
+const withCards: ReadGrant = {
+  ...grant,
+  tarjetas: {
+    headers: cardsHeaders,
+    cards: [
+      card('1001', '900001', '1111'),
+      card('1002', '900002', '2222'),
+      card('1003', '900002', '3333'),
+    ],
+  },
+};
+const cardsAuth = { kind: 'grant' as const, grant: withCards };
+const informacion = {
+  cupoNacional: 1000,
+  cupoUtilizadoNacional: 400,
+  cupoDisponibleNacional: 600,
+  cupoInternacional: 100,
+  cupoUtilizadoInternacional: 0.5,
+  cupoDisponibleInternacional: 99.5,
+  fechaProximaFacturacion: '20/10/2026',
+  errorNacional: null,
+  errorNoFacturados: null,
+  facturadosNacionales: [
+    { monto: 100, descripcion: 'COMERCIO', fecha: '3/9/2026', tipo: 'Titular **** 1111' },
+  ],
+  noFacturadosNacional: [],
+  facturadosInternacionales: null,
+  noFacturadosInternacional: [],
+};
 
 class FakeHttp implements HttpClient {
   readonly sent: { url: string; headers: Readonly<Record<string, string>>; body: unknown }[] = [];
@@ -73,6 +111,49 @@ describe('BciDriver', () => {
     expect(out.movimientos.map((m) => [m.fecha, m.monto.monto])).toEqual([['2026-01-10', -100]]);
     expect(out.cobertura).toHaveLength(1);
     expect(http.sent[0]?.body).toEqual({ numeroCuenta: '00001111' });
+  });
+
+  it('reads each card account once, with the cards app headers and its own body keys', async () => {
+    const http = new FakeHttp(() => ok(informacion));
+    const d = new BciDriver({ http });
+    const out = await d.tarjetas(cardsAuth, {});
+    expect(out.tarjetas.map((t) => [t.tarjeta, t.adicionales])).toEqual([
+      ['1111', undefined],
+      ['2222', ['3333']],
+    ]);
+    expect(out.movimientos).toBeUndefined();
+    expect(http.sent.map((r) => r.body)).toEqual([
+      { numeroCuenta: '900001', numeroTarjeta: '1001' },
+      { numeroCuenta: '900002', numeroTarjeta: '1002' },
+    ]);
+    expect(http.sent.every((r) => r.headers === cardsHeaders)).toBe(true);
+    // Keys are request keys only: never in the result.
+    expect(JSON.stringify(out)).not.toMatch(/900001|900002|1001|1002/);
+  });
+
+  it('reads one account by any of its cards, with movements when asked', async () => {
+    const http = new FakeHttp(() => ok(informacion));
+    const d = new BciDriver({ http });
+    const out = await d.tarjetas(cardsAuth, { tarjeta: '3333', movimientos: true });
+    expect(out.tarjetas.map((t) => t.tarjeta)).toEqual(['2222']);
+    expect(out.movimientos?.map((m) => [m.fecha, m.monto.monto, m.facturado])).toEqual([
+      ['2026-09-03', -100, true],
+    ]);
+    expect(http.sent).toHaveLength(1);
+    await expect(d.tarjetas(cardsAuth, { tarjeta: '9999' })).rejects.toBeInstanceOf(NoSuchCard);
+    expect(http.sent).toHaveLength(1);
+  });
+
+  it('says why cards are missing instead of reading without their headers', async () => {
+    const http = new FakeHttp(() => ok(informacion));
+    const d = new BciDriver({ http });
+    const failed = {
+      kind: 'grant' as const,
+      grant: { ...grant, tarjetas: { fallo: 'menú cambiado' } },
+    };
+    await expect(d.tarjetas(failed, {})).rejects.toThrow('menú cambiado');
+    await expect(d.tarjetas(auth, {})).rejects.toBeInstanceOf(BankError);
+    expect(http.sent).toEqual([]);
   });
 
   it('stops at the first expired or blocked answer, never retrying', async () => {
