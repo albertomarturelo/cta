@@ -262,6 +262,44 @@ describe('background login (ADR-013)', () => {
     expect(await tasks.logout('bci')).toEqual({ banco: 'bci', sesionGuardada: false });
   });
 
+  it('tarjetas needs a session, passes only the given query, and audits no data', async () => {
+    const tarjetas = {
+      tarjetas: [
+        {
+          banco: 'bci',
+          tarjeta: '2222',
+          descripcion: 'Tarjeta Ficticia **** 2222',
+          nacional: {
+            total: money('CLP', 900_000),
+            utilizado: money('CLP', 1),
+            disponible: money('CLP', 899_999),
+          },
+          internacional: {
+            total: money('USD', 100),
+            utilizado: money('USD', 0),
+            disponible: money('USD', 100),
+          },
+          facturacion: {},
+        },
+      ],
+      movimientos: [],
+    };
+    const { tasks, driver, audit } = setup({ tarjetas });
+    await expect(tasks.tarjetas('bci')).rejects.toBeInstanceOf(NotAuthenticated);
+    await tasks.login('bci');
+    expect(await tasks.tarjetas('bci', { tarjeta: '2222', movimientos: true })).toEqual({
+      banco: 'bci',
+      ...tarjetas,
+    });
+    expect(await tasks.tarjetas('016')).toEqual({ banco: 'bci', tarjetas: tarjetas.tarjetas });
+    expect(driver.calls.filter((c) => c.startsWith('tarjetas'))).toEqual([
+      'tarjetas:2222:mov',
+      'tarjetas:*:-',
+    ]);
+    expect(audit.entries.at(-1)).toMatchObject({ action: 'tarjetas', result: 'ok' });
+    expect(JSON.stringify(audit.entries)).not.toMatch(/2222|899/);
+  });
+
   it('rejects an unknown bank at once and audits it', async () => {
     const { tasks, audit, driver } = setup();
     await expect(tasks.startLogin('nope')).rejects.toBeInstanceOf(UnknownBank);

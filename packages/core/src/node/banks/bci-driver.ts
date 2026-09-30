@@ -18,16 +18,33 @@ import {
   parseMovimientos,
   parseSaldo,
 } from '../../banks/bci/reads.js';
-import type { Cartola, Cobertura, Cuenta, Movimiento, Saldo } from '../../domain/types.js';
+import {
+  groupByAccount,
+  matchTarjeta,
+  parseInformacionTarjeta,
+  parseTarjetasLista,
+} from '../../banks/bci/cards.js';
+import type {
+  Cartola,
+  Cobertura,
+  Cuenta,
+  EstadoTarjetas,
+  Movimiento,
+  MovimientoTarjeta,
+  Saldo,
+  Tarjeta,
+} from '../../domain/types.js';
 import {
   BankError,
   BrowserMissing,
+  CtaError,
   LoginCancelled,
   NotAuthenticated,
 } from '../../errors/errors.js';
 import { inRange, latestOnlyCoverage } from '../../movements/coverage.js';
 import type {
   BankDriver,
+  CardsGrant,
   DateRange,
   HttpAnswer,
   HttpClient,
@@ -35,12 +52,21 @@ import type {
   ReadAuth,
   ReadGrant,
   StoredCookie,
+  TarjetasQuery,
 } from '../../seams/seams.js';
 import { FetchHttpClient } from '../http-client.js';
 
 const FIVE_MINUTES = 5 * 60_000;
 const SESSION_COOKIE_WAIT = 10_000;
 const MENU_WAIT = 30_000;
+// The cards step runs on a page already settled by the saldos capture, so each
+// menu entry gets a short wait: a changed menu closes the window in seconds
+// instead of leaving it idle (2026-09-29 live run).
+const CARDS_MENU_WAIT = 10_000;
+// The cards app sent its card list at once on two runs and ~20 s after loading
+// on another (contract): a bounded wait, never a second click. It is armed
+// before the menu clicks, so it covers them too; a menu failure never waits on it.
+const CARDS_WAIT = 45_000;
 
 /**
  * Lazy-load Playwright — an optional peer of the core (STACK). Importing `./node`
@@ -251,6 +277,97 @@ async function openUltimosMovimientos(page: Page): Promise<string | undefined> {
   }
 }
 
+/** Polls `isReallyShown` until it holds or `ms` pass, for menus that animate open. */
+async function shownWithin(el: Locator, ms: number): Promise<boolean> {
+  const deadline = Date.now() + ms;
+  for (;;) {
+    if (await isReallyShown(el)) return true;
+    if (Date.now() >= deadline) return false;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+}
+
+/**
+ * Clicks the home's own menu path to the cards app — «Tarjetas», then «Mis
+ * movimientos» inside the «Tarjetas de crédito» group, opening the group once
+ * if its item is not shown. Page clicks only; undefined when the item was
+ * clicked, else where it stopped. Whether the app loaded is judged by its own
+ * card list request, not here.
+ */
+async function openMisMovimientosTarjeta(page: Page): Promise<string | undefined> {
+  const all = (name: string) => page.getByRole('link', { name, exact: true });
+  // «Tarjetas» is an <a> with no href (probe, 2026-09-29), so it has no link
+  // role: it is found as an anchor whose whole text is the name.
+  const anchor = (name: string) =>
+    page.locator('a').filter({ hasText: new RegExp(`^\\s*${name}\\s*$`) });
+  const { menuTarjetas, menuTarjetasCredito, menuMisMovimientosTarjeta } = BCI.orchestrator;
+  let step = `«${menuTarjetas}»`;
+  try {
+    // Two copies of a home link are common (contract): the first visible one
+    // that takes a click wins.
+    const tarjetas = anchor(menuTarjetas).filter({ visible: true });
+    await tarjetas.first().waitFor({ state: 'visible', timeout: CARDS_MENU_WAIT });
+    let opened = false;
+    for (let i = 0; i < (await tarjetas.count()) && !opened; i++) {
+      opened = await tarjetas
+        .nth(i)
+        .click({ timeout: 5_000 })
+        .then(() => true)
+        .catch(() => false);
+    }
+    if (!opened) throw new Error('menu path not taken');
+    await page.waitForLoadState('networkidle', { timeout: CARDS_MENU_WAIT }).catch(() => undefined);
+
+    step = `«${menuTarjetasCredito}»`;
+    // "Tarjetas de débito" holds items of the same kind, so the item is taken
+    // inside the nearest ancestor of the credit group that holds it.
+    const groups = all(menuTarjetasCredito);
+    await groups
+      .filter({ visible: true })
+      .first()
+      .waitFor({ state: 'visible', timeout: CARDS_MENU_WAIT });
+    const n = await groups.count();
+    for (let i = 0; i < n; i++) {
+      const group = groups.nth(i);
+      if (!(await group.isVisible())) continue;
+      const within = group.locator(
+        `xpath=ancestor::*[.//a[normalize-space(.)=${JSON.stringify(menuMisMovimientosTarjeta)}]][1]`,
+      );
+      const item = within
+        .getByRole('link', { name: menuMisMovimientosTarjeta, exact: true })
+        .first();
+      // The group may animate open, or already be open with its item covered
+      // (2026-09-29: both entries visible, the item not on top right after one
+      // click). So: open it, give it a moment, and click it once more if the
+      // item still is not on top. UI clicks only; nothing the bank answered is
+      // repeated, and whether the app loaded is judged by its own request.
+      for (let attempt = 0; attempt < 2 && !(await isReallyShown(item)); attempt++) {
+        step = `«${menuTarjetasCredito}» (grupo cerrado)`;
+        await group.click({ timeout: 5_000 }).catch(() => undefined);
+        await shownWithin(item, 3_000);
+      }
+      step = `«${menuMisMovimientosTarjeta}»`;
+      const clicked = await item
+        .click({ timeout: 10_000 })
+        .then(() => true)
+        .catch(() => false);
+      if (clicked) return undefined;
+    }
+    throw new Error('menu path not taken');
+  } catch {
+    const seen = async (name: string) => {
+      const found = name === menuTarjetas ? anchor(name) : all(name);
+      return `${await found.count()}/${await found.filter({ visible: true }).count()}`;
+    };
+    const counts = await Promise.all(
+      [menuTarjetas, menuTarjetasCredito, menuMisMovimientosTarjeta].map(
+        async (name) => `«${name}» ${await seen(name).catch(() => '?')}`,
+      ),
+    );
+    return `${step}; encontrados/visibles: ${counts.join(', ')}`;
+  }
+}
+
 /**
  * The BCI driver (ADR-003), built from `docs/bank-contract/bci.md`. The login
  * only watches, then takes the read grant from the bank's own saldos app; reads
@@ -288,7 +405,9 @@ export class BciDriver implements BankDriver {
           if (!hasSessionCookie(cookies)) {
             throw new BankError(this.slug, 'El banco no entregó una sesión reconocible.');
           }
-          return { kind: 'grant', grant: await this.captureGrant(context) };
+          const grant = await this.captureGrant(context);
+          // ADR-017: the cards app in the same login; a failure there never fails it.
+          return { kind: 'grant', grant: { ...grant, tarjetas: await this.captureCards(context) } };
         }
         case 'login-server-error':
           throw new BankError(
@@ -361,6 +480,58 @@ export class BciDriver implements BankDriver {
     };
   }
 
+  /**
+   * After the saldos capture, opens the cards app through the home's own menu
+   * and keeps what its own card list request carried: its headers, bearer
+   * included, exactly as sent, and the cards it got (ADR-017). Any failure is
+   * kept as the reason `tarjetas` will give; accounts and balances stay usable.
+   */
+  private async captureCards(context: BrowserContext): Promise<CardsGrant | { fallo: string }> {
+    const fromApp = (r: Response) => {
+      try {
+        return isAppUrl(r.frame().url(), BCI.cardsApp);
+      } catch {
+        return false;
+      }
+    };
+    const listing = context.waitForEvent('response', {
+      predicate: (r) =>
+        r.request().method() === 'GET' && r.url() === BCI.api.tarjetasLista && fromApp(r),
+      timeout: CARDS_WAIT,
+    });
+    listing.catch(() => undefined); // awaited below
+    try {
+      const page = context.pages().find((p) => isLoggedInUrl(p.url())) ?? context.pages()[0];
+      const failedAt = page ? await openMisMovimientosTarjeta(page) : 'sin página';
+      if (failedAt !== undefined) {
+        return {
+          fallo:
+            'Al iniciar sesión no pude abrir «Tarjetas» → «Tarjetas de crédito» → «Mis movimientos» ' +
+            `(se detuvo en ${failedAt}); el banco pudo cambiar su menú.`,
+        };
+      }
+      let res: Response;
+      try {
+        res = await listing;
+      } catch {
+        return { fallo: 'La app de tarjetas no entregó su lista de tarjetas al iniciar sesión.' };
+      }
+      if (res.status() !== 200) {
+        return { fallo: `El banco respondió ${res.status()} al listar las tarjetas.` };
+      }
+      const cards = parseTarjetasLista(await res.json().catch(() => undefined));
+      return { headers: appHeaders(await res.request().allHeaders()), cards };
+    } catch (err) {
+      // Unexpected errors may carry request details: the class only.
+      return {
+        fallo:
+          err instanceof CtaError
+            ? err.message
+            : `No pude leer las tarjetas al iniciar sesión (${err instanceof Error ? err.name : 'Error'}).`,
+      };
+    }
+  }
+
   async cuentas(auth: ReadAuth): Promise<readonly Cuenta[]> {
     return this.grantOf(auth).cuentas;
   }
@@ -370,7 +541,9 @@ export class BciDriver implements BankDriver {
     const saldos: Saldo[] = [];
     // One account at a time, like the app itself (contract, Accounts / balances).
     for (const numero of this.targets(grant, cuenta)) {
-      const json = await this.post(grant, BCI.api.saldoPorCuenta, { cuentaNumero: numero });
+      const json = await this.post(grant.headers, BCI.api.saldoPorCuenta, {
+        cuentaNumero: numero,
+      });
       saldos.push(parseSaldo(json));
     }
     return saldos;
@@ -386,12 +559,42 @@ export class BciDriver implements BankDriver {
     const movimientos: Movimiento[] = [];
     const cobertura: Cobertura[] = [];
     for (const numero of this.targets(grant, cuenta)) {
-      const json = await this.post(grant, BCI.api.movimientosPorCuenta, { numeroCuenta: numero });
+      const json = await this.post(grant.headers, BCI.api.movimientosPorCuenta, {
+        numeroCuenta: numero,
+      });
       const all = parseMovimientos(json, numero);
       cobertura.push(latestOnlyCoverage(numero, all, range));
       movimientos.push(...all.filter((m) => inRange(m.fecha, range)));
     }
     return { movimientos, cobertura };
+  }
+
+  /**
+   * Credit card accounts (ADR-017): one `informacion-tdc` per account, with the
+   * cards app's own headers, keyed by the account's first card as the app does.
+   */
+  async tarjetas(auth: ReadAuth, query: TarjetasQuery): Promise<EstadoTarjetas> {
+    const cards = this.grantOf(auth).tarjetas;
+    if (cards === undefined) {
+      throw new BankError(this.slug, 'Esta sesión no incluye tarjetas. Ejecuta: cta login bci');
+    }
+    if ('fallo' in cards) throw new BankError(this.slug, cards.fallo);
+    const accounts = groupByAccount(cards.cards);
+    const selected =
+      query.tarjeta === undefined ? accounts : [matchTarjeta(accounts, query.tarjeta)];
+    const tarjetas: Tarjeta[] = [];
+    const movimientos: MovimientoTarjeta[] = [];
+    for (const account of selected) {
+      // The body the app itself sends (contract): both keys from its card list.
+      const json = await this.post(cards.headers, BCI.api.informacionTarjeta, {
+        numeroCuenta: account.first.accountKey,
+        numeroTarjeta: account.first.cardKey,
+      });
+      const read = parseInformacionTarjeta(json, account);
+      tarjetas.push(read.tarjeta);
+      movimientos.push(...read.movimientos);
+    }
+    return query.movimientos === true ? { tarjetas, movimientos } : { tarjetas };
   }
 
   /** HTTP mode reads with the held grant only; stored cookies are not a session here. */
@@ -406,10 +609,14 @@ export class BciDriver implements BankDriver {
   }
 
   /** One POST with the app's own headers only; judged by content, never retried (ADR-004). */
-  private async post(grant: ReadGrant, url: string, body: unknown): Promise<unknown> {
+  private async post(
+    headers: Readonly<Record<string, string>>,
+    url: string,
+    body: unknown,
+  ): Promise<unknown> {
     let answer: HttpAnswer;
     try {
-      answer = await this.http.post(url, grant.headers, JSON.stringify(body));
+      answer = await this.http.post(url, headers, JSON.stringify(body));
     } catch (err) {
       // Network failure or timeout: the class only (a cause may echo the request).
       const kind = err instanceof Error ? err.name : 'Error';

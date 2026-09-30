@@ -13,7 +13,7 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
 | --- | --- | --- |
 | 0 | — | success |
 | 1 | unexpected | a bug or an unclassified failure |
-| 2 | `UnknownBank`, `InvalidDateRange` / usage | `--banco` missing or unknown, a bad or reversed `--desde`/`--hasta`, bad arguments |
+| 2 | `UnknownBank`, `InvalidDateRange`, `NoSuchCard` / usage | `--banco` missing or unknown, a bad or reversed `--desde`/`--hasta`, a `--tarjeta` that matches no card, bad arguments |
 | 3 | `NotAuthenticated`, `LoginCancelled` | no session, it expired, or the login window was closed / timed out — run `cta login <banco>` |
 | 4 | `BankBlocked` | the bank blocked or challenged; message verbatim, never retried |
 | 5 | `BankError` | the bank's error page or an unexpected shape; message verbatim |

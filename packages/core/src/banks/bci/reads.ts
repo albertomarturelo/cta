@@ -11,10 +11,10 @@ import { BCI } from './config.js';
  * unexpected shape is a `BankError`, never a guess.
  */
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
+export const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
-const unexpected = (what: string) =>
+export const unexpected = (what: string) =>
   new BankError(BCI.slug, `El banco respondió con un formato inesperado (${what}).`);
 
 // Account numbers are digit strings.

@@ -260,15 +260,14 @@ card or amount value was recorded.
   `GET {apilocal}/operaciones-y-ejecucion/tarjetas/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/`
   → `[{numeroTarjeta: "<digits>", numeroDeCuenta: "<digits>", descripcionLogo:
   "<digits>", tipoCliente: "P", descripcionSelectorTarjeta: "<label> **** 0000"}]`
-  **One entry per plastic, not per card account:** 3 items for an owner with
-  2 credit card accounts, one of which has an **additional card**. Compared in
-  memory (2026-09-29): two entries share `numeroDeCuenta` and
-  `descripcionLogo`; no entry's last 4 digits matched the debit card (listed,
-  alone, by its own app). Both entries of the shared account answered
-  `informacion-tdc` with the same list sizes; the movements' `tipo` word
-  differed (7 vs 9 letters, titular vs additional). `numeroTarjeta` has **4
-  digits** — not a full card number — and is still kept inside the driver.
-  The app's own `informacion-tdc` bodies took both values from this list (6/6).
+  **One entry per plastic, not per card account:** an **additional card**
+  gets its own entry, with the same `numeroDeCuenta` and `descripcionLogo` as
+  its account's titular. Debit cards are not in this list. The list does not
+  mark which entry is the titular. Each entry of one account answers
+  `informacion-tdc` with the account's movements; the movements' `tipo` word
+  tells titular from additional. `numeroTarjeta` has **4 digits** — not a full
+  card number — and is still kept inside the driver. The app's own
+  `informacion-tdc` bodies take both values from this list.
 - **Everything for one card:**
   `POST {apilocal}/…/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/informacion-tdc`,
   body `{numeroCuenta, numeroTarjeta}` (from the list) → `200`:
