@@ -277,6 +277,16 @@ async function openUltimosMovimientos(page: Page): Promise<string | undefined> {
   }
 }
 
+/** Polls `isReallyShown` until it holds or `ms` pass, for menus that animate open. */
+async function shownWithin(el: Locator, ms: number): Promise<boolean> {
+  const deadline = Date.now() + ms;
+  for (;;) {
+    if (await isReallyShown(el)) return true;
+    if (Date.now() >= deadline) return false;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+}
+
 /**
  * Clicks the home's own menu path to the cards app — «Tarjetas», then «Mis
  * movimientos» inside the «Tarjetas de crédito» group, opening the group once
@@ -326,10 +336,15 @@ async function openMisMovimientosTarjeta(page: Page): Promise<string | undefined
       const item = within
         .getByRole('link', { name: menuMisMovimientosTarjeta, exact: true })
         .first();
-      if (!(await isReallyShown(item))) {
+      // The group may animate open, or already be open with its item covered
+      // (2026-09-29: both entries visible, the item not on top right after one
+      // click). So: open it, give it a moment, and click it once more if the
+      // item still is not on top. UI clicks only; nothing the bank answered is
+      // repeated, and whether the app loaded is judged by its own request.
+      for (let attempt = 0; attempt < 2 && !(await isReallyShown(item)); attempt++) {
         step = `«${menuTarjetasCredito}» (grupo cerrado)`;
         await group.click({ timeout: 5_000 }).catch(() => undefined);
-        if (!(await isReallyShown(item))) continue;
+        await shownWithin(item, 3_000);
       }
       step = `«${menuMisMovimientosTarjeta}»`;
       const clicked = await item
