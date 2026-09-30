@@ -54,7 +54,7 @@ money-moving operations in v1 (ADR-008).
 | ✅ | `cta saldo --banco <b> [--cuenta]` | `saldo` | `readOnlyHint`; `banco` required; surfaces (GH-21), BCI (GH-28) |
 | ✅ | `cta movimientos --banco <b> [--cuenta] [--desde] [--hasta]` | `movimientos` | `readOnlyHint`; `banco` required; `cobertura` per account, `--human` warns on STDERR (GH-29, ADR-014) |
 | 💭 | `cta importar <archivo>` (a cartola the user exported, e.g. Excel) | — | Automation without a browser or a session: parse a file the user downloads; reuses the movement normalization. Needs an ADR (input formats, dedup) |
-| 💭 | `cta tarjetas --banco <b>` (credit cards: quotas, billed and unbilled movements) | `tarjetas` | BCI paths to be re-observed with the ADR; name and output shape need an ADR |
+| 🚧 | `cta tarjetas --banco <b> [--tarjeta] [--movimientos]` | `tarjetas` | `readOnlyHint`; ADR-017; BCI paths observed 2026-09-29 (CTA-8): cards app "Mis movimientos", same bearer, its own headers; driver next |
 | 🔒 | `cta transferir …` | — | **Needs its own ADR** meeting ADR-008's five conditions |
 
 ## Where a new surface goes
