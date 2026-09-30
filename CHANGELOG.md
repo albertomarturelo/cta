@@ -14,6 +14,15 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+- New `cta tarjetas --banco bci` and MCP `tarjetas`: your BCI credit cards —
+  national (CLP) and international (USD) quotas, last billed amount, minimum
+  payment and billing dates, one entry per card account, with additional cards
+  listed under it. `--movimientos` (`movimientos: true`) adds the billed and
+  unbilled movements. Cards are named by their last 4 digits only.
+- The BCI login also opens the credit cards' «Mis movimientos» before closing.
+  If the bank's menu changes, the login still ends and only `tarjetas` reports
+  where it stopped.
+
 ## 0.1.1 — 2026-09-29 — A BCI login you can find, that finishes on its own
 
 - The login window now comes to the front, and the terminal and the agent say

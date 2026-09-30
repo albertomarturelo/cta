@@ -43,10 +43,10 @@ Luego pídele, por ejemplo, «inicia sesión en bci y dime mi saldo»:
 
 1. Se abre la página real del banco. Inicias sesión tú, con tu clave y, si lo
    pide, tu segundo factor.
-2. Al llegar a tu inicio, la ventana abre sola tus últimos movimientos, toma la
-   sesión de lectura y se cierra.
-3. Durante cerca de una hora, el agente lee cuentas, saldos y movimientos sin
-   abrir el navegador. Cuando la sesión vence, vuelves a iniciar sesión.
+2. Al llegar a tu inicio, la ventana abre sola tus últimos movimientos y los
+   movimientos de tus tarjetas de crédito, toma la sesión de lectura y se cierra.
+3. Durante cerca de una hora, el agente lee cuentas, saldos, movimientos y
+   tarjetas sin abrir el navegador. Cuando la sesión vence, vuelves a iniciar sesión.
 
 ### Desde la terminal
 
@@ -54,6 +54,7 @@ Luego pídele, por ejemplo, «inicia sesión en bci y dime mi saldo»:
 cta login bci
 cta saldo --banco bci --human
 cta movimientos --banco bci --desde 2026-09-01
+cta tarjetas --banco bci --movimientos --human
 ```
 
 La sesión es una sola para el CLI y el MCP: si inicias sesión desde Claude

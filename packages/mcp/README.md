@@ -33,17 +33,18 @@ Requires **Node ≥ 20**. Claude Desktop (`claude_desktop_config.json`):
 
 ## Tools
 
-`bancos`, `login`, `logout`, `cuentas`, `saldo`, `movimientos`. Every bank-scoped
+`bancos`, `login`, `logout`, `cuentas`, `saldo`, `movimientos`, `tarjetas`. Every bank-scoped
 tool takes a required `banco`, e.g. `"bci"`.
 
 ## BCI flow
 
 1. `login` with `banco: "bci"` opens the bank's page. Log in there.
-2. Once you reach your bank home, the window opens "últimos movimientos" by
-   itself, takes the read session and closes. The server holds that session in
+2. Once you reach your bank home, the window opens "últimos movimientos" and
+   the credit cards' "mis movimientos" by itself, takes the read session and
+   closes. The server holds that session in
    memory, never on disk, for about an hour.
-3. `bancos` shows `sesionHasta`. Until then, `cuentas`, `saldo` and `movimientos`
-   read over HTTP, with no browser. After it, log in again.
+3. `bancos` shows `sesionHasta`. Until then, `cuentas`, `saldo`, `movimientos`
+   and `tarjetas` read over HTTP, with no browser. After it, log in again.
 
 If the bank blocks a read, the tool returns the bank's message and nothing is
 retried. See the [roadmap](https://github.com/albertomarturelo/cta/blob/main/docs/ROADMAP.md).

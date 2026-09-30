@@ -32,6 +32,38 @@ const saldos = [
   { banco: 'bci', cuenta: '00002222', disponible: money('CLP', -500), contable: money('CLP', 0) },
 ];
 
+const cupo = (moneda: 'CLP' | 'USD', disponible: number) => ({
+  total: money(moneda, 1_000_000),
+  utilizado: money(moneda, 1_000_000 - disponible),
+  disponible: money(moneda, disponible),
+});
+const tarjetas = {
+  tarjetas: [
+    {
+      banco: 'bci',
+      tarjeta: '2222',
+      adicionales: ['3333'],
+      descripcion: 'Tarjeta Ficticia **** 2222',
+      nacional: { ...cupo('CLP', 750_000), pagoMinimo: money('CLP', 12_000) },
+      internacional: cupo('USD', 98_750),
+      facturacion: { proxima: '2026-10-20', vencimiento: '2026-10-05' },
+    },
+  ],
+  movimientos: [
+    {
+      banco: 'bci',
+      tarjeta: '3333',
+      fecha: '2026-09-03',
+      descripcion: 'COMERCIO FICTICIO',
+      monto: money('USD', -1025),
+      tipo: 'cargo' as const,
+      facturado: false,
+      cuota: { numero: 2, total: 6 },
+      adicional: true as const,
+    },
+  ],
+};
+
 function cli(driverData: ConstructorParameters<typeof FakeBankDriver>[3] = {}) {
   const out: string[] = [];
   const err: string[] = [];
@@ -91,6 +123,39 @@ describe('cta CLI', () => {
     expect(err).toContain('banco: bci');
     expect(out[0]).toContain('00001111  disponible $ 1.234.567');
     expect(out[0]).toContain('disponible -$ 500');
+  });
+
+  it('tarjetas prints card accounts as JSON, with movements only when asked', async () => {
+    const { exec, out } = cli({ tarjetas });
+    await exec('login', 'bci');
+    out.length = 0;
+    expect(await exec('tarjetas', '--banco', 'bci')).toBe(0);
+    expect(JSON.parse(out[0]!)).toEqual({ banco: 'bci', tarjetas: tarjetas.tarjetas });
+    out.length = 0;
+    expect(await exec('tarjetas', '--banco', 'bci', '--tarjeta', '3333', '--movimientos')).toBe(0);
+    expect(JSON.parse(out[0]!)).toEqual({ banco: 'bci', ...tarjetas });
+  });
+
+  it('tarjetas --human shows quotas once per account and each movement', async () => {
+    const { exec, out } = cli({ tarjetas });
+    await exec('login', 'bci');
+    out.length = 0;
+    expect(await exec('tarjetas', '--banco', 'bci', '--movimientos', '--human')).toBe(0);
+    expect(out[0]).toContain('Tarjeta Ficticia **** 2222  (adicionales: 3333)');
+    expect(out[0]).toContain('nacional: disponible $ 750.000 de $ 1.000.000');
+    expect(out[0]).toContain('pago mínimo $ 12.000');
+    expect(out[0]).toContain('internacional: disponible US$ 987,50');
+    expect(out[0]).toContain('próxima 2026-10-20');
+    expect(out[0]).toMatch(
+      /2026-09-03 {2}3333 {2}no facturado.*-US\$ 10,25 {2}COMERCIO FICTICIO {2}\(cuota 2\/6\) {2}\[adicional\]/,
+    );
+  });
+
+  it('tarjetas refuses a card it does not know (usage error)', async () => {
+    const { exec, err } = cli({ tarjetas });
+    await exec('login', 'bci');
+    expect(await exec('tarjetas', '--banco', 'bci', '--tarjeta', '9999')).toBe(2);
+    expect(JSON.parse(err.at(-1)!)).toMatchObject({ code: 'NO_SUCH_CARD', banco: 'bci' });
   });
 
   it('accepts --human before the command too', async () => {
