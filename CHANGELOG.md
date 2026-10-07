@@ -14,6 +14,8 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+## 0.3.0 — 2026-10-07 — A demo bank to try cta without one
+
 - New demo bank: with `CTA_DEMO=1`, `--banco demo` (MCP `banco: "demo"`) is a
   fictitious «Banco Demo» with two accounts, about six weeks of movements and
   two credit cards, all invented and dated relative to today. Its login opens a
@@ -21,6 +23,9 @@ write it for users. This file is public: no account data, no personal facts
   account and no real data (ADR-019).
 - README: the BCI login step now says what 0.2.0 does — the window closes on
   its own seconds after your home loads.
+- Upgrading: a session started by an older `cta` keeps the old code and does
+  not know `demo`. Run `cta logout bci`, wait about two minutes for it to exit,
+  then restart your MCP client with `CTA_DEMO=1` set.
 
 ## 0.2.0 — 2026-10-07 — Credit cards, and a BCI login that no longer depends on the menu
 
