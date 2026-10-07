@@ -14,6 +14,8 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+## 0.2.0 — 2026-10-07 — Credit cards, and a BCI login that no longer depends on the menu
+
 - New `cta tarjetas --banco bci` and MCP `tarjetas`: your BCI credit cards —
   national (CLP) and international (USD) quotas, last billed amount, minimum
   payment and billing dates, one entry per card account, with additional cards
@@ -25,7 +27,11 @@ write it for users. This file is public: no account data, no personal facts
   longer break it (ADR-018).
 - BCI account `tipo` is now the bank's product code (`CCT`, `CPR`, …) instead
   of a word such as `Corriente`: accounts now come from the bank's own account
-  listing, which takes no RUT.
+  listing, which takes no RUT. If a script of yours matched on `Corriente`,
+  match on `CCT` instead.
+- Upgrading: a session started by 0.1.x keeps serving reads with the old code
+  until it ends. Run `cta logout bci`, wait about two minutes for it to exit,
+  then `cta login bci`.
 
 ## 0.1.1 — 2026-09-29 — A BCI login you can find, that finishes on its own
 

@@ -1,6 +1,6 @@
 {
   "name": "@albertomarturelo/cta-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "description": "MCP (stdio) server to read your own Chilean bank accounts from an AI agent. Each tool is a thin call into @albertomarturelo/cta-core tasks (ADR-003).",
   "keywords": [
