@@ -14,6 +14,14 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+- New demo bank: with `CTA_DEMO=1`, `--banco demo` (MCP `banco: "demo"`) is a
+  fictitious «Banco Demo» with two accounts, about six weeks of movements and
+  two credit cards, all invented and dated relative to today. Its login opens a
+  local demo page, so the whole flow — CLI or MCP — can be tried with no bank
+  account and no real data (ADR-019).
+- README: the BCI login step now says what 0.2.0 does — the window closes on
+  its own seconds after your home loads.
+
 ## 0.2.0 — 2026-10-07 — Credit cards, and a BCI login that no longer depends on the menu
 
 - New `cta tarjetas --banco bci` and MCP `tarjetas`: your BCI credit cards —

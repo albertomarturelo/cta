@@ -39,6 +39,11 @@ describe('resolveBank', () => {
     );
   });
 
+  it('says how to enable the demo bank when it is asked for but off (ADR-019)', () => {
+    expect(() => resolveBank('demo', drivers)).toThrow(/CTA_DEMO=1/);
+    expect(() => resolveBank('nope', drivers)).not.toThrow(/CTA_DEMO/);
+  });
+
   it('fails even when only one bank is registered', () => {
     expect(() => resolveBank(undefined, [drivers[0]!])).toThrow(UnknownBank);
   });

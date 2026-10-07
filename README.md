@@ -43,8 +43,8 @@ Luego pídele, por ejemplo, «inicia sesión en bci y dime mi saldo»:
 
 1. Se abre la página real del banco. Inicias sesión tú, con tu clave y, si lo
    pide, tu segundo factor.
-2. Al llegar a tu inicio, la ventana abre sola tus últimos movimientos y los
-   movimientos de tus tarjetas de crédito, toma la sesión de lectura y se cierra.
+2. Al llegar a tu inicio, la ventana se cierra sola en segundos: `cta` toma la
+   sesión de lectura que el banco entrega a su propia web, sin hacer clic en nada.
 3. Durante cerca de una hora, el agente lee cuentas, saldos, movimientos y
    tarjetas sin abrir el navegador. Cuando la sesión vence, vuelves a iniciar sesión.
 
@@ -61,6 +61,31 @@ La sesión es una sola para el CLI y el MCP: si inicias sesión desde Claude
 Desktop, `cta saldo` en la terminal la usa, y al revés. La guarda en memoria un
 pequeño proceso local de `cta`, que se cierra solo cuando la sesión vence o
 cuando haces `cta logout bci`.
+
+### Probar sin banco (modo demo)
+
+Con `CTA_DEMO=1` aparece un banco ficticio, `demo` («Banco Demo (datos
+ficticios)»), con dos cuentas, unas seis semanas de movimientos y dos tarjetas
+de crédito, todo inventado y con fechas relativas a hoy. Sirve para probar el
+CLI y el MCP sin cuenta en un banco ni datos reales.
+
+```bash
+CTA_DEMO=1 cta login demo        # una ventana local de demostración; pulsa «Ingresar»
+CTA_DEMO=1 cta movimientos --banco demo --human
+```
+
+En Claude Desktop, agrégalo al servidor y pide, por ejemplo, «inicia sesión en
+el banco demo y muéstrame mis gastos del mes»:
+
+```json
+{
+  "mcpServers": {
+    "cta": { "command": "cta-mcp", "env": { "CTA_DEMO": "1" } }
+  }
+}
+```
+
+Si ya había una sesión abierta sin la variable, ciérrala antes (`cta logout bci`).
 
 ## Qué NO hace
 

@@ -1,4 +1,4 @@
-import type { Browser, BrowserContext, BrowserType, Page, Response } from 'playwright';
+import type { BrowserContext, Page, Response } from 'playwright';
 
 import { matchCuenta } from '../../accounts/match-cuenta.js';
 import { bundleHeaders, mainScriptOf, withToken } from '../../banks/bci/bundle.js';
@@ -36,7 +36,6 @@ import type {
 import {
   BankBlocked,
   BankError,
-  BrowserMissing,
   CtaError,
   LoginCancelled,
   NotAuthenticated,
@@ -53,39 +52,13 @@ import type {
   ReadGrant,
   TarjetasQuery,
 } from '../../seams/seams.js';
+import { launchVisible, loadChromium } from '../browser.js';
 import { FetchHttpClient } from '../http-client.js';
 
 const FIVE_MINUTES = 5 * 60_000;
 // The orchestrator sent its token call 3 s after the landing (2026-10-07): a
 // bounded wait past the landing, so a changed flow closes the window in seconds.
 const TOKEN_WAIT = 30_000;
-
-/**
- * Lazy-load Playwright — an optional peer of the core (STACK). Importing `./node`
- * never loads it; a missing install fails here, at first use, with an actionable
- * message. Lineage: sii adapters/node/portal.ts.
- */
-async function loadChromium(): Promise<BrowserType> {
-  try {
-    return (await import('playwright')).chromium;
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === 'ERR_MODULE_NOT_FOUND' || code === 'MODULE_NOT_FOUND') throw new BrowserMissing();
-    throw err;
-  }
-}
-
-async function launchVisible(chromium: BrowserType): Promise<Browser> {
-  try {
-    // A normal, visible Chromium: no flags, no plugins, no user-agent change (ADR-004).
-    return await chromium.launch({ headless: false });
-  } catch (err) {
-    if (err instanceof Error && /Executable doesn't exist|playwright install/i.test(err.message)) {
-      throw new BrowserMissing();
-    }
-    throw err;
-  }
-}
 
 type Outcome =
   { kind: 'success' } | { kind: 'login-server-error'; page: Page } | { kind: 'closed' | 'timeout' };
