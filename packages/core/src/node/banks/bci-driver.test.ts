@@ -57,6 +57,10 @@ const informacion = {
 class FakeHttp implements HttpClient {
   readonly sent: { url: string; headers: Readonly<Record<string, string>>; body: unknown }[] = [];
   constructor(private readonly answer: (url: string, body: unknown) => HttpAnswer) {}
+  async get(url: string, headers: Readonly<Record<string, string>>) {
+    this.sent.push({ url, headers, body: undefined });
+    return this.answer(url, undefined);
+  }
   async post(url: string, headers: Readonly<Record<string, string>>, body: string) {
     const parsed: unknown = JSON.parse(body);
     this.sent.push({ url, headers, body: parsed });
@@ -179,6 +183,7 @@ describe('BciDriver', () => {
   it('reports a network failure as a bank error, once', async () => {
     let calls = 0;
     const down: HttpClient = {
+      get: () => Promise.reject(new TypeError('unused')),
       post: () => {
         calls += 1;
         return Promise.reject(new TypeError('fetch failed'));
@@ -197,5 +202,97 @@ describe('BciDriver', () => {
       session: { banco: 'bci', cookies: [], savedAt: 'x' },
     };
     await expect(d.saldos(cookies)).rejects.toBeInstanceOf(NotAuthenticated);
+  });
+
+  describe('grant from the orchestrator token (ADR-018)', () => {
+    // Built at run time from parts, so no token-shaped literal sits in the source (ADR-009).
+    const b64url = (o: unknown) =>
+      btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const token = ['h', b64url({ exp: 1_900_000_000 }), 's'].join('.');
+    // A synthetic interceptor per app, in the shape the bundles use (invented values).
+    const key = ['api', 'Key'].join('');
+    const bundle = (appId: string, client: string) =>
+      `x={production:!0,${key}:"${client}"};intercept(t,e){const i=t.clone({setHeaders:{` +
+      `"Application-Id":"${appId}",Authorization:\`bearer \${r}\`,Channel:"110",` +
+      `"Content-Type":"application/json","Reference-Operation":"op","Reference-Service":"svc",` +
+      `"Tracking-Id":"1","X-IBM-Client-Id":x.${key}}})}`;
+    const shell = '<script src="main.abc.js" type="module"></script>';
+    const text = (body: string): HttpAnswer => ({ status: 200, contentType: 'text/html', body });
+    const site = (overrides: Record<string, HttpAnswer> = {}) =>
+      new FakeHttp((url) => {
+        const hit = Object.entries(overrides).find(([part]) => url.includes(part));
+        if (hit) return hit[1];
+        const app = /\/(fe-[\w]+)\//.exec(url)?.[1] ?? '';
+        if (url.endsWith('/')) {
+          if (url.includes('apilocal')) {
+            return ok([
+              {
+                numeroTarjeta: '1001',
+                numeroDeCuenta: '900001',
+                descripcionLogo: '1',
+                tipoCliente: 'P',
+                descripcionSelectorTarjeta: 'Tarjeta Ficticia **** 1111',
+              },
+            ]);
+          }
+          return text(shell);
+        }
+        if (url.endsWith('main.abc.js')) return text(bundle(app, `cliente-${app}`));
+        if (url.includes('SolicitarClienteCuentas')) {
+          return ok({
+            cuentas: [
+              {
+                numeroDeCuenta: '00001111',
+                tipoCuenta: 'CCT',
+                fechaApertura: 'x',
+                estadoCuenta: 'VIG',
+              },
+            ],
+          });
+        }
+        return { status: 404, contentType: 'text/plain', body: '' };
+      });
+
+    it('builds every app header set from its bundle, and lists accounts and cards', async () => {
+      const http = site();
+      const g = await new BciDriver({ http }).grantFromToken(token);
+      expect(g.expiresAt).toBe(1_900_000_000);
+      expect(g.cuentas.map((c) => c.numero)).toEqual(['00001111']);
+      expect(g.headers['application-id']).toBe('fe-saldosultimosmovpersonas');
+      expect(g.headers['authorization']).toBe(`bearer ${token}`);
+      const cards = g.tarjetas;
+      expect(cards && 'headers' in cards && cards.headers['application-id']).toBe(
+        'fe-mismovimientos',
+      );
+      // bundles fetched bare; the accounts list with the statements app's own headers
+      const bare = http.sent.filter((r) => !r.url.includes('apilocal'));
+      expect(bare.every((r) => Object.keys(r.headers).length === 0)).toBe(true);
+      const listing = http.sent.find((r) => r.url.includes('SolicitarClienteCuentas'));
+      expect(listing?.headers['application-id']).toBe('fe-cartolashistoricaspersonas');
+      expect(JSON.stringify(http.sent)).not.toMatch(/rut/i);
+    });
+
+    it('keeps the login when only the cards app fails, saying why', async () => {
+      const http = site({ 'fe-mismovimientos/main': text('sin interceptor') });
+      const g = await new BciDriver({ http }).grantFromToken(token);
+      expect(g.cuentas).toHaveLength(1);
+      expect(g.tarjetas).toEqual({ fallo: expect.stringContaining('tarjetas') });
+    });
+
+    it('fails the login when the accounts or saldos app cannot be read, never retrying', async () => {
+      const blocked = site({
+        'fe-saldosultimosmovpersonas/': { status: 403, contentType: 'text/html', body: '' },
+      });
+      await expect(new BciDriver({ http: blocked }).grantFromToken(token)).rejects.toBeInstanceOf(
+        BankBlocked,
+      );
+      expect(blocked.sent).toHaveLength(1);
+      const expired = site({
+        SolicitarClienteCuentas: { status: 401, contentType: 'application/json', body: '{}' },
+      });
+      await expect(new BciDriver({ http: expired }).grantFromToken(token)).rejects.toBeInstanceOf(
+        NotAuthenticated,
+      );
+    });
   });
 });

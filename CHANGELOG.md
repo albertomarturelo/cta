@@ -19,9 +19,13 @@ write it for users. This file is public: no account data, no personal facts
   payment and billing dates, one entry per card account, with additional cards
   listed under it. `--movimientos` (`movimientos: true`) adds the billed and
   unbilled movements. Cards are named by their last 4 digits only.
-- The BCI login also opens the credit cards' «Mis movimientos» before closing.
-  If the bank's menu changes, the login still ends and only `tarjetas` reports
-  where it stopped.
+- The BCI login no longer goes through the bank's menu: once you have typed
+  your credentials, it closes as soon as the bank hands out its read token
+  (seconds after your home loads), and a change to the bank's menu can no
+  longer break it (ADR-018).
+- BCI account `tipo` is now the bank's product code (`CCT`, `CPR`, …) instead
+  of a word such as `Corriente`: accounts now come from the bank's own account
+  listing, which takes no RUT.
 
 ## 0.1.1 — 2026-09-29 — A BCI login you can find, that finishes on its own
 

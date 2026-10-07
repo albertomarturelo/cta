@@ -57,11 +57,11 @@ export interface ReadGrant {
   readonly headers: Readonly<Record<string, string>>;
   /** Unix seconds, from the bearer's `exp` claim — the only claim `cta` reads. */
   readonly expiresAt: number;
-  /** Accounts as the bank's app listed them at login (the app's own answer, ADR-012). */
+  /** Accounts as the bank listed them at login, with no RUT sent (ADR-012, ADR-018). */
   readonly cuentas: readonly Cuenta[];
   /**
-   * The cards app, captured in the same login (ADR-017): its own headers and card
-   * list, or why it could not be reached — a failed capture never fails the login.
+   * The cards app, read in the same login (ADR-017, ADR-018): its own headers and
+   * card list, or why it could not be read — a cards failure never fails the login.
    * Absent for a driver without cards.
    */
   readonly tarjetas?: CardsGrant | { readonly fallo: string };
@@ -106,6 +106,7 @@ export interface HttpAnswer {
  * headers given — no cookies, no browser headers made up — and never retries.
  */
 export interface HttpClient {
+  get(url: string, headers: Readonly<Record<string, string>>): Promise<HttpAnswer>;
   post(url: string, headers: Readonly<Record<string, string>>, body: string): Promise<HttpAnswer>;
 }
 

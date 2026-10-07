@@ -47,8 +47,8 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
 - **A driver declares its `readMode`, justified in its contract.** `headed`
   (ADR-012): reads run in a short-lived, visible browser; requests originate from
   the bank's page; never hide the window, never keep a session alive between
-  commands. `http` (ADR-015, BCI): the login captures the read grant from the
-  bank's own app; reads go through the `HttpClient` seam with the grant's
+  commands. `http` (ADR-015, ADR-018, BCI): the login captures the read token from
+  the bank's own call and each app's headers from its bundle; reads go through the `HttpClient` seam with the grant's
   headers only — no cookies, no browser headers made up, no retry, no browser
   fallback.
 - **One grant holder per user** (ADR-015): surfaces compose `createHolderTasks`,
@@ -79,11 +79,15 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
 - **A login only watches until the landing:** the driver opens the bank's page
   and waits for a decisive signal; it never fills, clicks or submits anything
   where the user types credentials or a second factor (ADR-006). After the
-  landing, an HTTP-mode driver may follow the bank's own menu, by exact
-  accessible names observed in a probe, to reach the app that hands out the read
-  grant (ADR-015). Never a guessed link: one hit a bank error page (GH-38). If
-  the observed menu is missing, the login fails at once and says so; it never
-  leaves the user waiting on a window.
+  landing, an HTTP-mode driver takes the read token from a call the bank's own
+  page makes by itself, and clicks nothing (ADR-018). Never a guessed link: one
+  hit a bank error page (GH-38). If that call does not come within a bounded
+  wait, the login fails at once and says so; it never leaves the user waiting
+  on a window.
+- **Prefer the bank web's own API calls over its front end** (ADR-018): an
+  app's API headers come from its public bundle at login, by header name, and
+  fail closed naming the header, never its value. A bank's client IDs never
+  land in this repo — not in config, fixtures or docs.
 - **Store only the bank's own cookies;** drop third-party cookies at login.
 - **Never retry** a login, a second factor, or a request the bank rejected.
   Surface the bank's message verbatim and stop (ADR-004).

@@ -7,15 +7,17 @@ import type { HttpAnswer, HttpClient } from '../seams/seams.js';
 export class FetchHttpClient implements HttpClient {
   constructor(private readonly timeoutMs = 30_000) {}
 
-  async post(
-    url: string,
-    headers: Readonly<Record<string, string>>,
-    body: string,
-  ): Promise<HttpAnswer> {
+  get(url: string, headers: Readonly<Record<string, string>>): Promise<HttpAnswer> {
+    return this.send(url, { method: 'GET', headers: { ...headers } });
+  }
+
+  post(url: string, headers: Readonly<Record<string, string>>, body: string): Promise<HttpAnswer> {
+    return this.send(url, { method: 'POST', headers: { ...headers }, body });
+  }
+
+  private async send(url: string, init: RequestInit): Promise<HttpAnswer> {
     const r = await fetch(url, {
-      method: 'POST',
-      headers: { ...headers },
-      body,
+      ...init,
       redirect: 'manual',
       signal: AbortSignal.timeout(this.timeoutMs),
     });
