@@ -301,9 +301,12 @@ card or amount value was recorded.
   headers — answered **`200 application/json`** at 19.8–20.1 min after the
   token was issued; `cf-ray` present, no challenge. The list from Node was
   identical to the app's. Nothing was retried.
-- **Inferred, to confirm on the live run:** positive `monto` = cargo, negative =
+- **Confirmed against the bank's app (2026-10-07, `cta tarjetas --movimientos
+  --human` through the ADR-018 driver):** positive `monto` = cargo, negative =
   abono/payment; `fechaVencimiento` = due date of the last billed statement,
-  `fechaVencimientoNoFacturado` = due date of the current period.
+  `fechaVencimientoNoFacturado` = due date of the current period; international
+  amounts are USD in dollars with 2 decimals; quotas, card labels' last 4
+  digits and the grouping per card account matched.
 - **Not used (ADR-017):** the home's «Tarjetas» view reads
   `personas.bci.cl/api/…/bff-tdc-mantenimiento-posicion-webpersonas/v1.0/cuenta/tarjetas/titulares`
   and `…/bff-tarjetaswebpersona/v3.0/tarjetas-credito/consultar-cupo` with the
