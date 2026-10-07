@@ -1,6 +1,6 @@
 # BCI (`bci`, code 016)
 
-Last verified: 2026-09-29 (credit cards, CTA-8); 2026-09-28 (landing move, HTTP reads, live driver reads — GH-36, GH-37, GH-38); 2026-09-25 (login, session, reads, expiry — see GH-6, GH-8, GH-15; live `cta cuentas`, `saldo`, `movimientos` runs through the driver — GH-28, GH-29; open items under "Not yet observed")
+Last verified: 2026-10-07 (grant without the menu: token call, public app bundles, Node reads — ADR-018); 2026-09-29 (credit cards, CTA-8); 2026-09-28 (landing move, HTTP reads, live driver reads — GH-36, GH-37, GH-38); 2026-09-25 (login, session, reads, expiry — see GH-6, GH-8, GH-15; live `cta cuentas`, `saldo`, `movimientos` runs through the driver — GH-28, GH-29; open items under "Not yet observed")
 
 Observed with a plain, visible Playwright Chromium (1.63), no flags, no stealth,
 the login typed by hand. Values below are shapes; identifiers in `<angle>` or
@@ -150,8 +150,10 @@ backend is `{apilocal}/bff-saldosyultimosmovimientoswebpersonas/v3.2/…`. Its
 calls carry `Authorization: Bearer <token>` and these app constants:
 `application-id: 1`, `channel: 110`, `reference-service: refser`,
 `reference-operation: refope`, `x-ibm-client-id: <36-char GUID set by the app —
-read at runtime, not hard-coded>`, `origin-addr: <client IP — inferred>`, and
-`tracking-id` (observed 2026-09-25; value shape not recorded). The cartolas app
+read at runtime, not hard-coded>`, `origin-addr: <an IPv4 address>`, and
+`tracking-id` (observed 2026-09-25; value shape not recorded). **Corrected
+2026-10-07:** `origin-addr` is a constant of the app's bundle, the same for every
+client — not the client's IP, as first inferred; `tracking-id` is `1`. The cartolas app
 sends the same set without `origin-addr`. Shapes below use invented
 placeholders.
 
@@ -236,9 +238,8 @@ card or amount value was recorded.
   **every** `apilocal` call seen: saldos, card movements, statements, debit
   (probes 1–2 matched it by hash with the auth scheme stripped). In probe 3
   the app's full `authorization` value did **not** equal `Bearer <that
-  token>` as a string — the scheme's spelling or spacing differs (not
-  recorded). **Driver rule:** reuse the app's `authorization` header exactly
-  as captured; never rebuild it from the token.
+  token>` as a string. **Resolved 2026-10-07:** the apps' code writes
+  `bearer <token>`, lower-case (see "Grant without the menu").
 - **Per-app headers differ:** the same ten header names as the saldos app, but
   `application-id`, `x-ibm-client-id`, `reference-service` and
   `reference-operation` have **other values** in each app (compared by hash,
@@ -246,12 +247,13 @@ card or amount value was recorded.
   The cards app's constants: `application-id: fe-mismovimientos`,
   `channel: 110`, `reference-service: mismovimientos`,
   `reference-operation: mismovimientos`, `content-type: application/json`;
-  `x-ibm-client-id` a 24-character id of its own; `tracking-id` a one-digit
-  value, the same on every request of the app; `origin-addr` an IPv4 address
-  (the client's — *inferred*). **Driver rule:** the cards reads send the cards
+  `x-ibm-client-id` an id of its own (24 characters recorded on 2026-09-29;
+  the bundle held a 32-character one on 2026-10-07); `tracking-id` `1`;
+  `origin-addr` an IPv4 address, a bundle constant (corrected 2026-10-07). **Driver rule:** the cards reads send the cards
   app's own headers, captured from its own request — never the saldos app's,
   and never made up (`origin-addr` is the bank's own value).
-- **Menu path:** on the orchestrator home, the link «Tarjetas», then «Tarjetas
+- **Menu path (no longer used by the driver, ADR-018):** on the orchestrator
+  home, the link «Tarjetas», then «Tarjetas
   de crédito» (a menu group), then its link «Mis movimientos» → `/comp/embedded`
   loads `personas.bci.cl/andes/fe-mismovimientos/` (hash route
   `mis-movimientos`). A «Mis tarjetas» under «Tarjetas de débito» is a separate
@@ -260,15 +262,14 @@ card or amount value was recorded.
   `GET {apilocal}/operaciones-y-ejecucion/tarjetas/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/`
   → `[{numeroTarjeta: "<digits>", numeroDeCuenta: "<digits>", descripcionLogo:
   "<digits>", tipoCliente: "P", descripcionSelectorTarjeta: "<label> **** 0000"}]`
-  **One entry per plastic, not per card account:** 3 items for an owner with
-  2 credit card accounts, one of which has an **additional card**. Compared in
-  memory (2026-09-29): two entries share `numeroDeCuenta` and
-  `descripcionLogo`; no entry's last 4 digits matched the debit card (listed,
-  alone, by its own app). Both entries of the shared account answered
-  `informacion-tdc` with the same list sizes; the movements' `tipo` word
-  differed (7 vs 9 letters, titular vs additional). `numeroTarjeta` has **4
-  digits** — not a full card number — and is still kept inside the driver.
-  The app's own `informacion-tdc` bodies took both values from this list (6/6).
+  **One entry per plastic, not per card account:** an **additional card**
+  gets its own entry, with the same `numeroDeCuenta` and `descripcionLogo` as
+  its account's titular. Debit cards are not in this list. The list does not
+  mark which entry is the titular. Each entry of one account answers
+  `informacion-tdc` with the account's movements; the movements' `tipo` word
+  tells titular from additional. `numeroTarjeta` has **4 digits** — not a full
+  card number — and is still kept inside the driver. The app's own
+  `informacion-tdc` bodies take both values from this list.
 - **Everything for one card:**
   `POST {apilocal}/…/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/informacion-tdc`,
   body `{numeroCuenta, numeroTarjeta}` (from the list) → `200`:
@@ -300,9 +301,12 @@ card or amount value was recorded.
   headers — answered **`200 application/json`** at 19.8–20.1 min after the
   token was issued; `cf-ray` present, no challenge. The list from Node was
   identical to the app's. Nothing was retried.
-- **Inferred, to confirm on the live run:** positive `monto` = cargo, negative =
+- **Confirmed against the bank's app (2026-10-07, `cta tarjetas --movimientos
+  --human` through the ADR-018 driver):** positive `monto` = cargo, negative =
   abono/payment; `fechaVencimiento` = due date of the last billed statement,
-  `fechaVencimientoNoFacturado` = due date of the current period.
+  `fechaVencimientoNoFacturado` = due date of the current period; international
+  amounts are USD in dollars with 2 decimals; quotas, card labels' last 4
+  digits and the grouping per card account matched.
 - **Not used (ADR-017):** the home's «Tarjetas» view reads
   `personas.bci.cl/api/…/bff-tdc-mantenimiento-posicion-webpersonas/v1.0/cuenta/tarjetas/titulares`
   and `…/bff-tarjetaswebpersona/v3.0/tarjetas-credito/consultar-cupo` with the
@@ -345,7 +349,8 @@ One attended login, then the browser closed and the balance read sent from Node
   (ADR-015).
 - **Verdict (ADR-015):** BCI reads can run from Node with the grant the app
   receives. The browser is needed only for the login and the grant capture.
-- **Driver rules (GH-38):** after the landing, the login waits for the saldos
+- **Driver rules (GH-38; superseded by ADR-018 on 2026-10-07 — kept as the
+  record of the menu):** after the landing, the login waited for the saldos
   app's own `por-rut` POST from a frame under `/nuevaWeb/` or `/modernizacion/`
   and keeps its ten headers, its account list and the bearer's `exp` (the only
   claim read). To open the app, it follows the home's own menu (observed
@@ -388,6 +393,48 @@ One attended login, then the browser closed and the balance read sent from Node
   opened "últimos movimientos"; then `cuentas`, `saldo` and `movimientos`
   (both signs) through the tasks over HTTP, with no browser after the login and
   nothing stored on disk.
+
+### Grant without the menu (observed 2026-10-07, ADR-018)
+
+One probe login; the user typed the credentials and touched nothing else, and
+nothing was clicked by the probe. Statuses, key names and value shapes only.
+
+- **Token:** the orchestrator sent `POST personas.bci.cl/api/api-auth-personas/v1/connectors/td`
+  by itself **3 s after the landing** → `200`, `{cpi, access_token}`. The
+  probe closed the window on that answer; login to token took 25 s.
+- **App shells are public:** `GET` with no cookie, no header →
+  `200 text/html` for `personas.bci.cl/modernizacion/fe-saldosultimosmovpersonas/`,
+  `/nuevaWeb/fe-cartolashistoricaspersonas/` and `/andes/fe-mismovimientos/`
+  (`/modernizacion/` and `/andes/` copies of the statements app answer `404`).
+  Each names one `main.<hash>.js` (the saldos app also an ES5 twin), also public.
+- **Headers live in the bundle,** in the app's HTTP interceptor, as constants:
+  `Application-Id`, `Channel` (`110`), `Content-Type`, `Reference-Operation`,
+  `Reference-Service`, `Tracking-Id` (`1`), `X-IBM-Client-Id` (a literal, or a
+  reference to the `apiKey` of the bundle's `production:!0` environment object),
+  `Origin-Addr` (an IPv4 constant; the statements app sets none) and
+  `Authorization: \`bearer ${token}\`` — lower-case `bearer`. The interceptors
+  also set `Origin`, which a browser drops. The cards app's interceptor spreads
+  a `header:{…}` object and then overrides `X-IBM-Client-Id` and
+  `Authorization`. The values match the names and constants recorded from live
+  requests on 2026-09-25/29.
+- **From Node,** with the token and those headers (`authorization` rebuilt as
+  `bearer <token>`, plus `accept: application/json, text/plain, */*`), no
+  cookies, 2 s apart, nothing retried, all within 0.3 min of the token: `GET
+  SolicitarClienteCuentas` (statements app headers) → `200`, `{cuentas:
+  [{numeroDeCuenta, tipoCuenta, fechaApertura, estadoCuenta}]}`, numbers of 8
+  digits, `tipoCuenta` `CCT`/`CPR`; `POST …/por-numero-cuenta` with one of
+  those numbers (saldos headers) → `200`, the same `numero` back;
+  `POST …/cuentas-movimientos/por-numero-cuenta` → `200`, `{movimientos,
+  ordenadoPor}`; `GET mov-tdc/` (cards headers) → `200`, the known list shape;
+  `POST informacion-tdc` → `200`, `cupoNacional` present. `cf-ray` on every
+  answer, no challenge.
+- **Driver rules (ADR-018):** the login waits up to 30 s past the landing for
+  that `connectors/td` answer and closes the window; it clicks nothing. Then,
+  from Node, it reads each app's headers from its shell and bundle, lists the
+  accounts with `SolicitarClienteCuentas` (no RUT) and the cards with `GET
+  mov-tdc/`. Accounts and saldos failing fail the login; cards failing fail
+  only `tarjetas`. A bundle whose interceptor lacks an expected header, or
+  whose value is not a plain constant, is a `BankError` naming the header.
 
 ## Formats
 

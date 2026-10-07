@@ -1,5 +1,5 @@
 import { toIsoDate, type IsoDate } from '../dates/dates.js';
-import type { Cartola, Cuenta, Saldo } from '../domain/types.js';
+import type { Cartola, Cuenta, EstadoTarjetas, Saldo } from '../domain/types.js';
 import { BankBlocked, CtaError, InvalidDateRange, NotAuthenticated } from '../errors/errors.js';
 import { resolveBank } from '../identity/resolve-bank.js';
 import type {
@@ -10,6 +10,7 @@ import type {
   ReadAuth,
   ReadGrant,
   SessionStore,
+  TarjetasQuery,
 } from '../seams/seams.js';
 
 export interface TaskDeps {
@@ -308,6 +309,23 @@ export function createTasks(deps: TaskDeps) {
         const range = dateRange(query);
         const cartola = await read(driver, (a) => driver.movimientos(a, range, query.cuenta));
         return { banco: driver.slug, ...cartola };
+      }),
+
+    /**
+     * Credit card accounts of one bank — quotas, billing dates and, when asked,
+     * the billed and unbilled movements — one read per account (ADR-017).
+     */
+    tarjetas: (
+      banco: string | undefined,
+      query: TarjetasQuery = {},
+    ): Promise<{ banco: string } & EstadoTarjetas> =>
+      run('tarjetas', banco, async (driver) => {
+        // Only the keys given: the holder turns JSON nulls into absent ones.
+        const q: TarjetasQuery = {
+          ...(query.tarjeta === undefined ? {} : { tarjeta: query.tarjeta }),
+          ...(query.movimientos === true ? { movimientos: true } : {}),
+        };
+        return { banco: driver.slug, ...(await read(driver, (a) => driver.tarjetas(a, q))) };
       }),
   };
 }

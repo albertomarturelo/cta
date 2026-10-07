@@ -22,6 +22,7 @@ export const HOLDER_METHODS = [
   'cuentas',
   'saldo',
   'movimientos',
+  'tarjetas',
 ] as const satisfies readonly (keyof Tasks)[];
 
 export type HolderMethod = (typeof HOLDER_METHODS)[number];

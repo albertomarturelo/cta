@@ -33,15 +33,6 @@ export const BCI = {
     pathPrefix: '/web/fe-orq-mo-personas-re-v',
     homeSuffix: '/home',
     miBancoSegment: '/comp/mi_banco/',
-    // observed at https://personas.bci.cl/web/fe-orq-mo-personas-re-v1-7/comp/embedded on
-    // 2026-09-28: where "Últimos Movimientos" routes before loading the saldos app
-    embeddedSegment: '/comp/embedded',
-    // observed at https://personas.bci.cl/web/fe-orq-mo-personas-re-v1-7/comp/mi_banco/cl/bci/aplicaciones/menu/vistas/inicio/miBanco
-    // on 2026-09-28: the user's path to the saldos app — the main frame's link
-    // "Mi Cuenta", then its link "Últimos Movimientos" (both href="#"), which
-    // routes to /comp/embedded?url=… and loads the app with ?token=… in an iframe
-    menuMiCuenta: 'Mi Cuenta',
-    menuUltimosMovimientos: 'Últimos Movimientos',
     // observed on personas.bci.cl on 2026-09-28: the only session cookie at this
     // landing — httpOnly, persistent; JSESSIONID on www.bci.cl no longer exists
     sessionCookie: '__Host-SESSIONID',
@@ -57,26 +48,45 @@ export const BCI = {
   // Only the bank's own cookies are stored; trackers are dropped.
   cookieDomainSuffix: 'bci.cl',
 
-  // observed at https://personas.bci.cl/nuevaWeb/fe-saldosultimosmovpersonas/ on 2026-09-25
-  // (the micro-frontends' host, reached as an iframe of the JSF page)
-  appsHost: 'personas.bci.cl',
+  // observed at https://personas.bci.cl/api/api-auth-personas/v1/connectors/td on
+  // 2026-09-29 and 2026-10-07: right after the landing the orchestrator itself
+  // POSTs here (session cookie, no bearer) and gets {cpi, access_token}; that
+  // token is the bearer of every apilocal read (ADR-018). Answered 3 s after the
+  // landing on 2026-10-07.
+  tokenCall: { host: 'personas.bci.cl', path: '/api/api-auth-personas/v1/connectors/td' },
 
-  // observed at https://personas.bci.cl/nuevaWeb/fe-saldosultimosmovpersonas/ on 2026-09-25
-  // (the balances-and-latest-movements app; it sends por-rut itself on load)
-  saldosApp: 'fe-saldosultimosmovpersonas',
-  // observed on personas.bci.cl on 2026-09-25 (/nuevaWeb/) and 2026-09-28
-  // (/modernizacion/, loaded by the orchestrator's /comp/embedded route)
-  appPathRoots: ['/nuevaWeb/', '/modernizacion/'],
+  // observed at these URLs on 2026-10-07: each app's public shell, served with
+  // no session; it names the app's main.<hash>.js, whose HTTP interceptor holds
+  // the app's own API headers (ADR-018). Headers come from there at every login.
+  apps: {
+    // the balances-and-latest-movements app (reads saldo and movimientos)
+    saldos: 'https://personas.bci.cl/modernizacion/fe-saldosultimosmovpersonas/',
+    // the statements app: its SolicitarClienteCuentas lists accounts with no RUT
+    cuentas: 'https://personas.bci.cl/nuevaWeb/fe-cartolashistoricaspersonas/',
+    // the credit cards' "Mis movimientos" app
+    tarjetas: 'https://personas.bci.cl/andes/fe-mismovimientos/',
+  },
 
   // observed at https://apilocal.bci.cl/bci-produccion/api-bci/bff-saldosyultimosmovimientoswebpersonas/v3.2/ on 2026-09-25
   api: {
-    cuentasPorRut:
-      'https://apilocal.bci.cl/bci-produccion/api-bci/bff-saldosyultimosmovimientoswebpersonas/v3.2/cuentas-busquedas/por-rut',
+    // observed at this URL on 2026-09-25 (sent by the statements app) and sent from
+    // Node with that app's bundle headers on 2026-10-07 → 200: GET, no body, no RUT
+    cuentas:
+      'https://apilocal.bci.cl/bci-produccion/api-bci/operaciones-transversales-de-producto/gestion-de-cuenta/ms-gestioncuentascliente-neg/v3.11/SolicitarClienteCuentas',
     saldoPorCuenta:
       'https://apilocal.bci.cl/bci-produccion/api-bci/bff-saldosyultimosmovimientoswebpersonas/v3.2/cuentas-busquedas/por-numero-cuenta',
     // body {numeroCuenta}; the latest movements, no range, no paging (50 seen)
     movimientosPorCuenta:
       'https://apilocal.bci.cl/bci-produccion/api-bci/bff-saldosyultimosmovimientoswebpersonas/v3.2/cuentas-movimientos/por-numero-cuenta',
+    // observed at https://apilocal.bci.cl/bci-produccion/api-bci/operaciones-y-ejecucion/tarjetas/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/
+    // on 2026-09-29: GET, no body — the cards app's own card list, one entry per plastic
+    tarjetasLista:
+      'https://apilocal.bci.cl/bci-produccion/api-bci/operaciones-y-ejecucion/tarjetas/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/',
+    // observed at the same base on 2026-09-29: POST {numeroCuenta, numeroTarjeta}
+    // → quotas, billing dates and billed and unbilled movements of one card;
+    // answered 200 from Node with the cards app's headers only (contract)
+    informacionTarjeta:
+      'https://apilocal.bci.cl/bci-produccion/api-bci/operaciones-y-ejecucion/tarjetas/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/informacion-tdc',
   },
 
   // observed on cuentas-movimientos/por-numero-cuenta answers on 2026-09-25: only
@@ -85,11 +95,10 @@ export const BCI = {
   movementSign: { C: 'cargo', A: 'abono' },
 
   // observed on apilocal.bci.cl requests of the saldos app on 2026-09-25: the
-  // headers it sends besides what the browser adds itself
+  // headers it sends besides what the browser adds itself. Only these are taken
+  // from a bundle's interceptor; `authorization` is built from the token.
   apiHeaders: [
-    'accept',
     'content-type',
-    'authorization',
     'application-id',
     'channel',
     'reference-service',
@@ -98,4 +107,7 @@ export const BCI = {
     'origin-addr',
     'tracking-id',
   ],
+  // Angular HttpClient's default Accept, which the apps' requests carry; sent
+  // from Node with every read on 2026-10-07 → 200.
+  apiAccept: 'application/json, text/plain, */*',
 } as const;

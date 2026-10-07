@@ -1,5 +1,5 @@
 import type { IsoDate } from '../dates/dates.js';
-import type { Cartola, Cuenta, Saldo } from '../domain/types.js';
+import type { Cartola, Cuenta, EstadoTarjetas, Saldo } from '../domain/types.js';
 
 /** A browser cookie as persisted — the ONLY thing stored for a session (ADR-006). */
 export interface StoredCookie {
@@ -57,8 +57,31 @@ export interface ReadGrant {
   readonly headers: Readonly<Record<string, string>>;
   /** Unix seconds, from the bearer's `exp` claim — the only claim `cta` reads. */
   readonly expiresAt: number;
-  /** Accounts as the bank's app listed them at login (the app's own answer, ADR-012). */
+  /** Accounts as the bank listed them at login, with no RUT sent (ADR-012, ADR-018). */
   readonly cuentas: readonly Cuenta[];
+  /**
+   * The cards app, read in the same login (ADR-017, ADR-018): its own headers and
+   * card list, or why it could not be read — a cards failure never fails the login.
+   * Absent for a driver without cards.
+   */
+  readonly tarjetas?: CardsGrant | { readonly fallo: string };
+}
+
+/** A card as the bank's cards app listed it; its keys are request keys only (ADR-017). */
+export interface CardRef {
+  /** The bank's card key, sent back in reads; never output. */
+  readonly cardKey: string;
+  /** The card account's key; cards sharing it share a quota. Never output. */
+  readonly accountKey: string;
+  /** The bank's own label, at most 4 digits shown. */
+  readonly label: string;
+  readonly last4: string;
+}
+
+/** The cards app's own headers — bearer included, exactly as sent — and card list. */
+export interface CardsGrant {
+  readonly headers: Readonly<Record<string, string>>;
+  readonly cards: readonly CardRef[];
 }
 
 /** What a login yields: cookies to store (browser mode) or a grant to hold (HTTP mode). */
@@ -83,7 +106,16 @@ export interface HttpAnswer {
  * headers given — no cookies, no browser headers made up — and never retries.
  */
 export interface HttpClient {
+  get(url: string, headers: Readonly<Record<string, string>>): Promise<HttpAnswer>;
   post(url: string, headers: Readonly<Record<string, string>>, body: string): Promise<HttpAnswer>;
+}
+
+/** What a card read covers (ADR-017). */
+export interface TarjetasQuery {
+  /** Last 4 digits of any card of the account wanted; all accounts when absent. */
+  readonly tarjeta?: string;
+  /** Also return the billed and unbilled movements. */
+  readonly movimientos?: boolean;
 }
 
 /** Both ends optional and inclusive; absent means unbounded (ADR-014). */
@@ -114,4 +146,6 @@ export interface BankDriver {
   saldos(auth: ReadAuth, cuenta?: string): Promise<readonly Saldo[]>;
   /** Filtered to `range`; each account read says how far it reaches (ADR-014). */
   movimientos(auth: ReadAuth, range: DateRange, cuenta?: string): Promise<Cartola>;
+  /** Credit card accounts, one read per account (ADR-017). */
+  tarjetas(auth: ReadAuth, query: TarjetasQuery): Promise<EstadoTarjetas>;
 }

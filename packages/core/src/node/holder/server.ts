@@ -31,7 +31,7 @@ export interface HolderServer {
   close(): Promise<void>;
 }
 
-/** Arguments are what the task API takes: short strings or a flat string query. */
+/** Arguments are what the task API takes: short strings or a flat query of strings and flags. */
 function validArgs(args: unknown): args is unknown[] {
   if (!Array.isArray(args) || args.length > 3) return false;
   return args.every(
@@ -40,7 +40,9 @@ function validArgs(args: unknown): args is unknown[] {
       typeof a === 'string' ||
       (typeof a === 'object' &&
         !Array.isArray(a) &&
-        Object.values(a as object).every((v) => v === null || typeof v === 'string')),
+        Object.values(a as object).every(
+          (v) => v === null || typeof v === 'string' || typeof v === 'boolean',
+        )),
   );
 }
 

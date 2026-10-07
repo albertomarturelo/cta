@@ -5,6 +5,7 @@ import {
   classifyDocumentResponse,
   hasSessionCookie,
   isLoggedInUrl,
+  isTokenCall,
   pageMessage,
 } from './login-flow.js';
 
@@ -25,6 +26,17 @@ const cookie = (
 });
 
 describe('BCI login flow (pure)', () => {
+  it("watches only the orchestrator's own token POST (ADR-018)", () => {
+    const url = 'https://personas.bci.cl/api/api-auth-personas/v1/connectors/td';
+    expect(isTokenCall('POST', url)).toBe(true);
+    expect(isTokenCall('GET', url)).toBe(false);
+    expect(isTokenCall('POST', 'https://www.bci.cl/api/api-auth-personas/v1/connectors/td')).toBe(
+      false,
+    );
+    expect(isTokenCall('POST', `${url}/otro`)).toBe(false);
+    expect(isTokenCall('POST', 'no es url')).toBe(false);
+  });
+
   it('recognizes the observed JSF landing as success', () => {
     expect(isLoggedInUrl('https://www.bci.cl/cl/bci/aplicaciones/contenido.jsf')).toBe(true);
     expect(

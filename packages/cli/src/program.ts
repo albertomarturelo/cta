@@ -176,6 +176,27 @@ export async function run(
         ),
     );
 
+  program
+    .command('tarjetas')
+    .description(
+      'Tarjetas de crédito de un banco: cupos, fechas de facturación y, con --movimientos, los movimientos facturados y no facturados.',
+    )
+    .option('--banco <banco>', 'banco (obligatorio)')
+    .option('--tarjeta <ultimos4>', 'últimos 4 dígitos de una tarjeta, titular o adicional')
+    .option('--movimientos', 'incluye los movimientos facturados y no facturados')
+    .option('--human', 'salida en texto')
+    .action((opts: { banco?: string; tarjeta?: string; movimientos?: boolean; human?: boolean }) =>
+      exec(
+        opts,
+        () =>
+          tasks.tarjetas(opts.banco, {
+            ...(opts.tarjeta === undefined ? {} : { tarjeta: opts.tarjeta }),
+            ...(opts.movimientos === true ? { movimientos: true } : {}),
+          }),
+        human.tarjetas,
+      ),
+    );
+
   try {
     await program.parseAsync([...argv], { from: 'user' });
   } catch (err) {

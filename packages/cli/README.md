@@ -25,6 +25,7 @@ cta login bci                     # log in; the window closes by itself
 cta bancos --human
 cta saldo --banco bci --human
 cta movimientos --banco bci --desde 2026-09-01
+cta tarjetas --banco bci --human  # credit cards; --movimientos adds billed and unbilled
 ```
 
 The read session is shared with the MCP server (`@albertomarturelo/cta-mcp`): a

@@ -149,5 +149,31 @@ export function buildServer(tasks: Tasks, version: string): McpServer {
       ),
   );
 
+  server.registerTool(
+    'tarjetas',
+    {
+      title: 'Credit cards',
+      description:
+        "Credit card accounts of one bank: national quota (CLP) and international quota (USD, in cents) — total, used, available, last billed amount and minimum payment — and billing dates (ultima, proxima, vencimiento, vencimientoProximo). One entry per card account: an additional card is listed under `adicionales` and shares its account's quota, so never add quotas across them. Cards are named by their last 4 digits only. With movimientos: true it also returns the card movements the bank shows — the last billed statement (`facturado: true`) and those not yet billed (`facturado: false`); there is no date range. Amounts are signed integer minor units (cargo negative, abono positive). Uses the bank session held by cta.",
+      inputSchema: {
+        banco,
+        tarjeta: z
+          .string()
+          .regex(/^\d{4}$/)
+          .optional()
+          .describe('Last 4 digits of a card (titular or additional) to read only its account.'),
+        movimientos: z.boolean().optional().describe('Also return billed and unbilled movements.'),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    ({ banco, tarjeta, movimientos }) =>
+      toolJson(() =>
+        tasks.tarjetas(banco, {
+          ...(tarjeta === undefined ? {} : { tarjeta }),
+          ...(movimientos === true ? { movimientos: true } : {}),
+        }),
+      ),
+  );
+
   return server;
 }

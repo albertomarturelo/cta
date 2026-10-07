@@ -1,6 +1,14 @@
 import { matchCuenta } from '../accounts/match-cuenta.js';
 import { inRange } from '../movements/coverage.js';
-import type { Cartola, Cobertura, Cuenta, Movimiento, Saldo } from '../domain/types.js';
+import { NoSuchCard } from '../errors/errors.js';
+import type {
+  Cartola,
+  Cobertura,
+  Cuenta,
+  EstadoTarjetas,
+  Movimiento,
+  Saldo,
+} from '../domain/types.js';
 import type {
   AuditEntry,
   AuditSink,
@@ -13,6 +21,7 @@ import type {
   SessionStore,
   StoredCookie,
   StoredSession,
+  TarjetasQuery,
 } from './seams.js';
 
 /** In-memory fakes of every seam, for tests. Synthetic data only. */
@@ -64,6 +73,8 @@ export interface FakeBankData {
   readonly cuentas?: readonly Cuenta[];
   readonly saldos?: readonly Saldo[];
   readonly movimientos?: readonly Movimiento[];
+  /** Card accounts and all their movements; the fake filters them like a driver (ADR-017). */
+  readonly tarjetas?: EstadoTarjetas;
   /** Thrown by every read, e.g. a `NotAuthenticated` or `BankBlocked`. */
   readonly failWith?: Error;
   /** Overrides the coverage the fake reports, e.g. an incomplete one (ADR-014). */
@@ -141,5 +152,24 @@ export class FakeBankDriver implements BankDriver {
         };
       });
     return { movimientos, cobertura };
+  }
+
+  async tarjetas(auth: ReadAuth, query: TarjetasQuery): Promise<EstadoTarjetas> {
+    this.auths.push(auth.kind);
+    this.calls.push(`tarjetas:${query.tarjeta ?? '*'}:${query.movimientos === true ? 'mov' : '-'}`);
+    if (this.data.failWith) throw this.data.failWith;
+    const all = this.data.tarjetas ?? { tarjetas: [] };
+    const tarjetas =
+      query.tarjeta === undefined
+        ? all.tarjetas
+        : all.tarjetas.filter((t) =>
+            [t.tarjeta, ...(t.adicionales ?? [])].includes(query.tarjeta!),
+          );
+    if (query.tarjeta !== undefined && tarjetas.length !== 1) {
+      throw new NoSuchCard(this.slug, query.tarjeta, tarjetas.length > 1);
+    }
+    if (query.movimientos !== true) return { tarjetas };
+    const own = new Set(tarjetas.flatMap((t) => [t.tarjeta, ...(t.adicionales ?? [])]));
+    return { tarjetas, movimientos: (all.movimientos ?? []).filter((m) => own.has(m.tarjeta)) };
   }
 }

@@ -31,12 +31,44 @@ const saldos = [
   },
 ];
 
+const cupo = (moneda: 'CLP' | 'USD') => ({
+  total: money(moneda, 100_000),
+  utilizado: money(moneda, 25_000),
+  disponible: money(moneda, 75_000),
+});
+const tarjetas = {
+  tarjetas: [
+    {
+      banco: 'bci',
+      tarjeta: '2222',
+      adicionales: ['3333'],
+      descripcion: 'Tarjeta Ficticia **** 2222',
+      nacional: cupo('CLP'),
+      internacional: cupo('USD'),
+      facturacion: { proxima: '2026-10-20' },
+    },
+  ],
+  movimientos: [
+    {
+      banco: 'bci',
+      tarjeta: '3333',
+      fecha: '2026-09-03',
+      descripcion: 'COMERCIO FICTICIO',
+      monto: money('CLP', -1000),
+      tipo: 'cargo' as const,
+      facturado: false,
+      adicional: true as const,
+    },
+  ],
+};
+
 async function connect(loginWaitsFor?: Promise<unknown>) {
   const tasks = createTasks({
     drivers: [
       new FakeBankDriver('bci', '016', 'Banco Ficticio', {
         cookies: [cookie],
         saldos,
+        tarjetas,
         ...(loginWaitsFor === undefined ? {} : { loginWaitsFor }),
       }),
     ],
@@ -62,7 +94,7 @@ async function connect(loginWaitsFor?: Promise<unknown>) {
 }
 
 describe('cta-mcp', () => {
-  it('exposes the six tools; banco is required on every bank-scoped one (ADR-011)', async () => {
+  it('exposes the seven tools; banco is required on every bank-scoped one (ADR-011)', async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
@@ -72,6 +104,7 @@ describe('cta-mcp', () => {
       'logout',
       'movimientos',
       'saldo',
+      'tarjetas',
     ]);
     for (const t of tools.filter((t) => t.name !== 'bancos')) {
       expect(t.inputSchema.required).toContain('banco');
@@ -89,12 +122,13 @@ describe('cta-mcp', () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
     const hint = (n: string) => tools.find((t) => t.name === n)?.annotations?.readOnlyHint;
-    expect([hint('bancos'), hint('cuentas'), hint('saldo'), hint('movimientos')]).toEqual([
-      true,
-      true,
-      true,
-      true,
-    ]);
+    expect([
+      hint('bancos'),
+      hint('cuentas'),
+      hint('saldo'),
+      hint('movimientos'),
+      hint('tarjetas'),
+    ]).toEqual([true, true, true, true, true]);
     expect(hint('login')).toBe(false);
   });
 
@@ -126,6 +160,22 @@ describe('cta-mcp', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     const saldo = await call('saldo', { banco: 'bci', cuenta: '1111' });
     expect(saldo.json).toEqual({ banco: 'bci', saldos });
+  });
+
+  it('reads card accounts, and their movements only when asked (ADR-017)', async () => {
+    const { client, call } = await connect();
+    await call('login', { banco: 'bci' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const summary = await call('tarjetas', { banco: 'bci' });
+    expect(summary.json).toEqual({ banco: 'bci', tarjetas: tarjetas.tarjetas });
+    const full = await call('tarjetas', { banco: 'bci', tarjeta: '3333', movimientos: true });
+    expect(full.json).toEqual({ banco: 'bci', ...tarjetas });
+    // The schema takes only 4 digits: the SDK refuses anything else before the task.
+    const bad = (await client.callTool({
+      name: 'tarjetas',
+      arguments: { banco: 'bci', tarjeta: '12345' },
+    })) as { isError?: boolean };
+    expect(bad.isError).toBe(true);
   });
 
   it('returns structured errors, e.g. a read without a session', async () => {

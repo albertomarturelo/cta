@@ -3,8 +3,11 @@ import type {
   Cobertura,
   Cuenta,
   Money,
+  Cupo,
   Movimiento,
+  MovimientoTarjeta,
   Saldo,
+  Tarjeta,
 } from '@albertomarturelo/cta-core';
 
 /** Formats money for humans only; JSON output keeps integer minor units (ADR-007). */
@@ -35,6 +38,28 @@ export function coverageWarning(cobertura: readonly Cobertura[]): string | undef
     )
     .join('\n');
 }
+
+const cupo = (nombre: string, c: Cupo) =>
+  `  ${nombre}: disponible ${formatMoney(c.disponible)} de ${formatMoney(c.total)}` +
+  `  utilizado ${formatMoney(c.utilizado)}` +
+  (c.facturado ? `  facturado ${formatMoney(c.facturado)}` : '') +
+  (c.pagoMinimo ? `  pago mínimo ${formatMoney(c.pagoMinimo)}` : '');
+
+const tarjeta = (t: Tarjeta) =>
+  [
+    `${t.descripcion}` +
+      (t.adicionales?.length ? `  (adicionales: ${t.adicionales.join(', ')})` : ''),
+    cupo('nacional', t.nacional),
+    cupo('internacional', t.internacional),
+    `  facturación: última ${t.facturacion.ultima ?? '-'}  próxima ${t.facturacion.proxima ?? '-'}` +
+      `  vence ${t.facturacion.vencimiento ?? '-'}  siguiente vencimiento ${t.facturacion.vencimientoProximo ?? '-'}`,
+  ].join('\n');
+
+const movimientoTarjeta = (m: MovimientoTarjeta) =>
+  `${m.fecha}  ${m.tarjeta}  ${(m.facturado ? 'facturado' : 'no facturado').padEnd(12)}` +
+  `  ${formatMoney(m.monto).padStart(16)}  ${m.descripcion}` +
+  (m.cuota ? `  (cuota ${m.cuota.numero}/${m.cuota.total})` : '') +
+  (m.adicional ? '  [adicional]' : '');
 
 export const human = {
   login: (r: { banco: string; guardadaEn: string; sesionHasta?: string }) =>
@@ -76,4 +101,15 @@ export const human = {
               `${m.fecha}  ${m.cuenta}  ${formatMoney(m.monto).padStart(14)}  ${m.descripcion}`,
           )
           .join('\n'),
+  tarjetas: (r: { tarjetas: readonly Tarjeta[]; movimientos?: readonly MovimientoTarjeta[] }) => {
+    const out = r.tarjetas.length === 0 ? ['Sin tarjetas.'] : r.tarjetas.map(tarjeta);
+    if (r.movimientos !== undefined) {
+      out.push(
+        r.movimientos.length === 0
+          ? 'Sin movimientos de tarjeta.'
+          : ['Movimientos:', ...r.movimientos.map(movimientoTarjeta)].join('\n'),
+      );
+    }
+    return out.join('\n\n');
+  },
 };

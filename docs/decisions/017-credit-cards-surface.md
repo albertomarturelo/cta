@@ -25,13 +25,14 @@ with two decimals); it answered `200` from Node.
 - **Output** (ADR-007: minor units, ISO dates, optional fields omitted):
   `{ banco, tarjetas: Tarjeta[], movimientos?: MovimientoTarjeta[] }` with
   - `Tarjeta` is **one per card account**, never per plastic: `{ banco,
-    tarjeta: '<titular's last 4>', adicionales?: ['<last 4>'], descripcion,
+    tarjeta: '<last 4>', adicionales?: ['<last 4>'], descripcion,
     nacional: Cupo, internacional: Cupo, facturacion: { ultima?, proxima?,
     vencimiento?, vencimientoProximo? } }` — the bank lists one entry per
     plastic and an additional card shares its titular's `numeroDeCuenta`
     (observed), so the driver groups by account, reads each account once, and
-    a quota is never reported twice. `descripcion` is the bank's own label of
-    the titular card, verbatim, accepted only if it shows at most 4 digits;
+    a quota is never reported twice. `tarjeta` is the account's first entry
+    in the bank's list (the list does not mark the titular), `adicionales` the
+    others; `descripcion` is that entry's label, verbatim;
   - `Cupo = { total, utilizado, disponible, facturado?, pagoMinimo? }`, every
     field a `Money` (`CLP` national, `USD` international, in cents);
   - `MovimientoTarjeta = { banco, tarjeta, fecha, descripcion, monto, tipo:
@@ -47,8 +48,10 @@ with two decimals); it answered `200` from Node.
   digits on 2026-09-29) and the card account number are request keys only,
   held in memory with the grant, never in output, audit, errors or logs.
   Output shows last 4 digits only; `--tarjeta` matches a titular's or an
-  additional card's and selects that account. A label or a movement
-  description with a run of more than 4 digits is a `BankError`, never printed.
+  additional card's and selects that account. A card label with a run of
+  more than 4 digits is a `BankError`, never printed. A movement description
+  stays verbatim (ADR-007; merchants' references carry digits), except that a
+  run of 13 or more digits — card-number length — is masked to `****<last 4>`.
 - **Sign and meaning are inferred until the live run confirms them:** a
   positive bank `monto` is a `cargo` (negative in output), a negative one an
   `abono`. Date fields map as `fechaFacturacion` → `ultima`,
@@ -80,19 +83,16 @@ with two decimals); it answered `200` from Node.
    `origin-addr` is the bank's own value for the client and `x-ibm-client-id`
    would land in a public repo; both stay the bank's own, read at runtime.
    Only the capture uses the menu; the reads are the web's own API calls.
-4. **Capture the cards grant on the first `tarjetas` read, in a browser.**
-   Rejected: reads never open a browser (ADR-015); it would need a second login.
-5. **A separate `cta movimientos-tarjeta` command.** Rejected by the owner: the
-   same bank answer serves both; `--movimientos` keeps one surface.
-6. **Folding card movements into `cta movimientos`.** Rejected: a card is not
-   an account (no balance, two currencies, billing state); mixing them would
-   blur ADR-014's per-account coverage.
+4. **Capture the cards grant on the first read, in a browser.** Rejected:
+   reads never open a browser (ADR-015).
+5. **A separate `cta movimientos-tarjeta`.** Rejected: one answer serves both.
+6. **Card movements in `cta movimientos`.** Rejected: a card is not an account
+   (two currencies, billing state); it would blur ADR-014's coverage.
 7. **The "Estado de cuenta" app.** Deferred: statement history, a third app.
 
 ## Consequences
 
-- One attended login also yields about an hour of card reads; the login
-  window stays open a little longer while the cards app loads.
+- One login also yields about an hour of card reads; its window stays open longer.
 - The grant type gains per-app headers and a card list; the driver gains a
   second menu path, which can break when the bank changes its menu — it then
   fails only `tarjetas`, naming the step.

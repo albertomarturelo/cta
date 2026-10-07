@@ -2,35 +2,37 @@ import { describe, expect, it } from 'vitest';
 
 import { BankBlocked, BankError, NotAuthenticated } from '../../errors/errors.js';
 import {
-  appHeaders,
   grantExpiry,
-  isAppUrl,
   judgeApiAnswer,
   parseCuentas,
   parseMovimientos,
   parseSaldo,
+  parseTokenAnswer,
 } from './reads.js';
 
 // Synthetic shapes of the contract (docs/bank-contract/bci.md); invented values.
 describe('BCI reads', () => {
-  it('reads accounts from the app answer, never needing the RUT', () => {
+  it('reads accounts from SolicitarClienteCuentas, which takes no RUT (ADR-018)', () => {
+    const cuenta = (numeroDeCuenta: string, tipoCuenta: string) => ({
+      numeroDeCuenta,
+      tipoCuenta,
+      fechaApertura: '2020-01-31',
+      estadoCuenta: 'VIG',
+    });
     expect(
-      parseCuentas({
-        cuentas: [
-          { numero: '00001111', tipo: 'Corriente' },
-          { numero: '00002222', tipo: 'Corriente' },
-        ],
-      }),
+      parseCuentas({ cuentas: [cuenta('00001111', 'CCT'), cuenta('00002222', 'CPR')] }),
     ).toEqual([
-      { banco: 'bci', numero: '00001111', tipo: 'Corriente', moneda: 'CLP' },
-      { banco: 'bci', numero: '00002222', tipo: 'Corriente', moneda: 'CLP' },
+      { banco: 'bci', numero: '00001111', tipo: 'CCT', moneda: 'CLP' },
+      { banco: 'bci', numero: '00002222', tipo: 'CPR', moneda: 'CLP' },
     ]);
   });
 
   it('rejects an unexpected account shape instead of guessing', () => {
     expect(() => parseCuentas({ accounts: [] })).toThrow(BankError);
-    expect(() => parseCuentas({ cuentas: [{ numero: 1111 }] })).toThrow(BankError);
-    expect(() => parseCuentas({ cuentas: [{ numero: 'abc' }] })).toThrow(BankError);
+    expect(() => parseCuentas({ cuentas: [{ numeroDeCuenta: 1111 }] })).toThrow(BankError);
+    expect(() => parseCuentas({ cuentas: [{ numeroDeCuenta: 'abc' }] })).toThrow(BankError);
+    // the old por-rut shape is not taken for the new one
+    expect(() => parseCuentas({ cuentas: [{ numero: '00001111' }] })).toThrow(BankError);
   });
 
   it('reads a balance as integer pesos', () => {
@@ -60,23 +62,6 @@ describe('BCI reads', () => {
     expect(() => parseSaldo({ ...base, saldoContable: '10' })).toThrow(BankError);
   });
 
-  it('recognizes the saldos app only on its own host and path', () => {
-    const app = 'fe-saldosultimosmovpersonas';
-    expect(isAppUrl('https://personas.bci.cl/nuevaWeb/fe-saldosultimosmovpersonas/?t=x', app)).toBe(
-      true,
-    );
-    expect(isAppUrl('https://www.bci.cl/nuevaWeb/fe-saldosultimosmovpersonas/', app)).toBe(false);
-    expect(isAppUrl('https://personas.bci.cl/nuevaWeb/fe-otra/', app)).toBe(false);
-  });
-
-  it('accepts the app under /modernizacion/ as well (observed 2026-09-28)', () => {
-    const app = 'fe-saldosultimosmovpersonas';
-    expect(
-      isAppUrl('https://personas.bci.cl/modernizacion/fe-saldosultimosmovpersonas/', app),
-    ).toBe(true);
-    expect(isAppUrl('https://personas.bci.cl/otra/fe-saldosultimosmovpersonas/', app)).toBe(false);
-  });
-
   // Built at run time from parts, so no token-shaped literal sits in the source (ADR-009).
   const b64url = (o: unknown) =>
     btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -87,6 +72,14 @@ describe('BCI reads', () => {
     expect(() => grantExpiry(bearer({ otro: 'x' }))).toThrow(BankError);
     expect(() => grantExpiry('Bearer synthetic')).toThrow(BankError);
     expect(() => grantExpiry('')).toThrow(BankError);
+  });
+
+  it('takes the token from the orchestrator answer and nothing else', () => {
+    const token = ['h', b64url({ exp: 1 }), 's'].join('.');
+    expect(parseTokenAnswer({ cpi: 'x', access_token: token })).toBe(token);
+    expect(() => parseTokenAnswer({ cpi: 'x' })).toThrow(BankError);
+    expect(() => parseTokenAnswer({ access_token: 'opaque' })).toThrow(BankError);
+    expect(() => parseTokenAnswer(undefined)).toThrow(BankError);
   });
 
   const json = (status: number, body: unknown) => ({
@@ -135,28 +128,6 @@ describe('BCI reads', () => {
     expect(() =>
       judgeApiAnswer({ status: 200, contentType: 'application/json', body: 'no json' }),
     ).toThrow(BankError);
-  });
-
-  it('repeats only the headers the app sets, and requires its authorization', () => {
-    const fromApp = {
-      authorization: 'Bearer synthetic',
-      'application-id': '1',
-      channel: '110',
-      'x-ibm-client-id': 'synthetic-client',
-      'content-type': 'application/json',
-      'user-agent': 'browser adds it',
-      origin: 'browser adds it',
-      'content-length': '20',
-      ':path': '/pseudo',
-    };
-    expect(appHeaders(fromApp)).toEqual({
-      authorization: 'Bearer synthetic',
-      'application-id': '1',
-      channel: '110',
-      'x-ibm-client-id': 'synthetic-client',
-      'content-type': 'application/json',
-    });
-    expect(() => appHeaders({ channel: '110' })).toThrow(BankError);
   });
 
   it('signs movements from tipo: C is a cargo, A an abono (inferred, contract)', () => {

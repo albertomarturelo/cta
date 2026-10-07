@@ -67,5 +67,6 @@ export function createRemoteTasks(socketPath: string = defaultHolderSocket()): T
     cuentas: remote('cuentas'),
     saldo: remote('saldo'),
     movimientos: remote('movimientos'),
+    tarjetas: remote('tarjetas'),
   };
 }

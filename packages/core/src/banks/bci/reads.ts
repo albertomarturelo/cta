@@ -11,30 +11,48 @@ import { BCI } from './config.js';
  * unexpected shape is a `BankError`, never a guess.
  */
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
+export const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
-const unexpected = (what: string) =>
+export const unexpected = (what: string) =>
   new BankError(BCI.slug, `El banco respondió con un formato inesperado (${what}).`);
 
 // Account numbers are digit strings.
 const ACCOUNT_NUMBER = /^\d{4,20}$/;
 
-/** The app's own `por-rut` answer: `{ cuentas: [{ numero, tipo }] }`. */
+/**
+ * The statements app's `SolicitarClienteCuentas` (ADR-018): `{ cuentas: [{
+ * numeroDeCuenta, tipoCuenta, fechaApertura, estadoCuenta }] }`. No RUT goes in
+ * or comes out (ADR-012). `tipo` is the bank's product code (`CCT`, `CPR` seen).
+ */
 export function parseCuentas(json: unknown): Cuenta[] {
   if (!isRecord(json) || !Array.isArray(json['cuentas'])) throw unexpected('cuentas');
   return json['cuentas'].map((c) => {
-    if (!isRecord(c) || typeof c['numero'] !== 'string' || !ACCOUNT_NUMBER.test(c['numero'])) {
+    if (
+      !isRecord(c) ||
+      typeof c['numeroDeCuenta'] !== 'string' ||
+      !ACCOUNT_NUMBER.test(c['numeroDeCuenta'])
+    ) {
       throw unexpected('cuenta');
     }
     return {
       banco: BCI.slug,
-      numero: c['numero'],
-      tipo: typeof c['tipo'] === 'string' ? c['tipo'] : '',
+      numero: c['numeroDeCuenta'],
+      tipo: typeof c['tipoCuenta'] === 'string' ? c['tipoCuenta'] : '',
       // Every amount of these reads is whole pesos (contract, Formats).
       moneda: 'CLP',
     };
   });
+}
+
+/**
+ * The orchestrator's own `connectors/td` answer (ADR-018): `{ cpi, access_token }`.
+ * The token is the bearer of every read; nothing else of the answer is kept.
+ */
+export function parseTokenAnswer(json: unknown): string {
+  const token = isRecord(json) ? json['access_token'] : undefined;
+  if (typeof token !== 'string' || token.split('.').length !== 3) throw unexpected('token');
+  return token;
 }
 
 /** `por-numero-cuenta`: integer pesos for `saldoDisponible`, `saldoContable`, `retenciones`. */
@@ -96,25 +114,11 @@ export function parseMovimientos(json: unknown, cuenta: string): Movimiento[] {
   });
 }
 
-/** The saldos app's URL, under either observed root; anywhere else is not the app. */
-export function isAppUrl(url: string, app: string): boolean {
-  try {
-    const u = new URL(url);
-    return (
-      u.hostname === BCI.appsHost &&
-      BCI.appPathRoots.some((root) => u.pathname.startsWith(`${root}${app}/`))
-    );
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Unix seconds of the bearer's `exp` — the ONLY claim `cta` reads (ADR-015): the
  * others carry the customer's identifiers and are never decoded into anything.
  */
-export function grantExpiry(authorization: string): number {
-  const token = authorization.replace(/^Bearer\s+/i, '');
+export function grantExpiry(token: string): number {
   const payload = token.split('.')[1];
   let exp: unknown;
   try {
@@ -170,19 +174,4 @@ export function judgeApiAnswer(a: HttpAnswer): unknown {
     throw new BankError(BCI.slug, messageOf(json) ?? `El banco respondió ${a.status}.`);
   }
   return json;
-}
-
-/**
- * The headers of the app's own API request that `cta` repeats for the next
- * reads from the same page (ADR-012) — only the ones the app sets; the browser
- * adds its own (origin, cookies, user agent) as it always does.
- */
-export function appHeaders(headers: Readonly<Record<string, string>>): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const name of BCI.apiHeaders) {
-    const v = headers[name];
-    if (v !== undefined) out[name] = v;
-  }
-  if (!out['authorization']) throw unexpected('sin autorización de la app');
-  return out;
 }

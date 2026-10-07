@@ -43,6 +43,20 @@ export function isLoggedInUrl(url: string): boolean {
 }
 
 /**
+ * The orchestrator's own token call (ADR-018): a POST to `connectors/td` on its
+ * host. Watched, never sent by `cta`.
+ */
+export function isTokenCall(method: string, url: string): boolean {
+  const u = parse(url);
+  return (
+    method === 'POST' &&
+    u !== undefined &&
+    u.hostname === BCI.tokenCall.host &&
+    u.pathname === BCI.tokenCall.path
+  );
+}
+
+/**
  * Classifies a decisive document response. The login uses only
  * `login-server-error`: a challenge there is the user's to resolve (ADR-004).
  * `challenge` serves unattended reads (restore), where nobody can resolve it.
