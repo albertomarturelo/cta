@@ -19,10 +19,18 @@ export {
 
 import type { BankDriver } from './seams/seams.js';
 import { BciDriver } from './node/banks/bci-driver.js';
+import { DemoDriver } from './node/banks/demo-driver.js';
 
 export { BciDriver } from './node/banks/bci-driver.js';
+export { DemoDriver } from './node/banks/demo-driver.js';
 
-/** The drivers a real run uses, in registry order (append-only). */
-export function defaultDrivers(): readonly BankDriver[] {
-  return [new BciDriver()];
+/**
+ * The drivers a real run uses, in registry order (append-only). The fictitious
+ * `demo` bank joins only when the process sees `CTA_DEMO=1` (ADR-019); a holder
+ * inherits it from the surface that spawns it.
+ */
+export function defaultDrivers(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): readonly BankDriver[] {
+  return env['CTA_DEMO'] === '1' ? [new BciDriver(), new DemoDriver()] : [new BciDriver()];
 }

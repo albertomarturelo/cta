@@ -1,3 +1,4 @@
+import { DEMO } from '../banks/demo/dataset.js';
 import { UnknownBank } from '../errors/errors.js';
 import type { BankDriver } from '../seams/seams.js';
 
@@ -13,6 +14,8 @@ export function resolveBank(input: string | undefined, drivers: readonly BankDri
     throw new UnknownBank(
       input,
       drivers.map((d) => d.slug),
+      // The demo bank is off unless asked for (ADR-019): say how, not just "unknown".
+      wanted === DEMO.slug ? DEMO.enableHint : undefined,
     );
   return driver;
 }

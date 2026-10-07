@@ -16,11 +16,13 @@ export class UnknownBank extends CtaError {
   constructor(
     readonly input: string | undefined,
     readonly supported: readonly string[],
+    hint?: string,
   ) {
     super(
       input === undefined || input.trim() === ''
         ? `--banco es obligatorio. Soportados: ${supported.join(', ') || '(ninguno)'}.`
-        : `Banco desconocido '${input}'. Soportados: ${supported.join(', ') || '(ninguno)'}.`,
+        : `Banco desconocido '${input}'. Soportados: ${supported.join(', ') || '(ninguno)'}.` +
+            (hint === undefined ? '' : ` ${hint}`),
       'UNKNOWN_BANK',
       2,
     );

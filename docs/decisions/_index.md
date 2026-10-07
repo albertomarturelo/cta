@@ -23,3 +23,4 @@ their lineage inside each record.
 | 016 | [Development work items live in a private GitHub Project](016-work-items-in-a-private-project.md) | Accepted | 2026-09-28 |
 | 017 | [Credit cards — `cta tarjetas`, read with the login's grant and the cards app's own headers](017-credit-cards-surface.md) | Accepted | 2026-09-29 |
 | 018 | [The read grant comes from the orchestrator's token call and the apps' own bundles — no menu](018-grant-without-the-menu.md) | Accepted | 2026-10-07 |
+| 019 | [A fictitious `demo` bank, enabled with `CTA_DEMO=1`](019-demo-bank.md) | Accepted | 2026-10-07 |
