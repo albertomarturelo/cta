@@ -43,6 +43,7 @@ money-moving operations in v1 (ADR-008).
 | ✅ | `bci` driver: movimientos | latest movements per account (50 seen) filtered to the range, with `cobertura` (ADR-014); `tipo` `C`/`A` sign confirmed against the bank's app 2026-09-28; JSF date search later (#27) | 007, 014 |
 | ✅ | **Spike: BCI reads over HTTP** | Observed 2026-09-28 (GH-37): after one attended login, balance reads from a Node `fetch` with only the app's own headers answered `200` for 46 min and `401` past `exp`; Cloudflare on `apilocal`, no challenge; token `exp` ≈ 60 min, claims carry personal identifiers | 004, 015 |
 | ✅ | `bci` driver: HTTP reads | #38: capture the read grant at login, `readMode: 'http'`, reads from Node; entry via the orchestrator's embedded saldos app (`/modernizacion/…`, GH-36); the login opens "Mi Cuenta" → "Últimos Movimientos" itself and closes (#4); live-verified 2026-09-28 (cuentas, saldo, movimientos) | 012, 015 |
+| 🚧 | `bci` driver: grant without the menu | ADR-018: the login closes on the orchestrator's own `connectors/td` token; each app's headers from its public bundle; accounts via `SolicitarClienteCuentas` (no RUT); no menu clicks. Probe 2026-10-07: every read `200` from Node; driver live run pending | 015, 018 |
 
 ## Surfaces
 
@@ -54,7 +55,7 @@ money-moving operations in v1 (ADR-008).
 | ✅ | `cta saldo --banco <b> [--cuenta]` | `saldo` | `readOnlyHint`; `banco` required; surfaces (GH-21), BCI (GH-28) |
 | ✅ | `cta movimientos --banco <b> [--cuenta] [--desde] [--hasta]` | `movimientos` | `readOnlyHint`; `banco` required; `cobertura` per account, `--human` warns on STDERR (GH-29, ADR-014) |
 | 💭 | `cta importar <archivo>` (a cartola the user exported, e.g. Excel) | — | Automation without a browser or a session: parse a file the user downloads; reuses the movement normalization. Needs an ADR (input formats, dedup) |
-| 🚧 | `cta tarjetas --banco <b> [--tarjeta] [--movimientos]` | `tarjetas` | `readOnlyHint`; ADR-017; BCI paths observed 2026-09-29 (CTA-8): cards app "Mis movimientos", same bearer, its own headers; driver next |
+| 🚧 | `cta tarjetas --banco <b> [--tarjeta] [--movimientos]` | `tarjetas` | `readOnlyHint`; ADR-017, ADR-018; BCI paths observed 2026-09-29 (CTA-8): cards app "Mis movimientos", same bearer, its own headers; driver done, live check pending |
 | 🔒 | `cta transferir …` | — | **Needs its own ADR** meeting ADR-008's five conditions |
 
 ## Where a new surface goes
