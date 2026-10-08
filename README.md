@@ -18,6 +18,12 @@ Claude Code y cualquier cliente MCP). Todo corre **en tu computador**:
 **Banco soportado primero:** BCI. Otros bancos se suman como *drivers*
 independientes, idealmente contribuidos por quien tiene cuenta en ellos.
 
+<p align="center">
+  <img src="docs/media/cta-demo.gif" alt="Claude Desktop con cta: arma un gráfico de torta de los gastos y suma lo que se gasta al mes en seguros entre la cuenta corriente y las tarjetas (banco demo, datos ficticios)" width="560">
+</p>
+
+<p align="center"><sub>Claude Desktop leyendo el banco <code>demo</code> (datos ficticios) a través del MCP de <code>cta</code>.</sub></p>
+
 ## Instalar
 
 Requiere **Node ≥ 20**.
