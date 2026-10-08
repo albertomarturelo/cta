@@ -54,7 +54,7 @@ money-moving operations in v1 (ADR-008).
 | ✅ | `cta cuentas --banco <b>` | `cuentas` | accounts of a bank; `banco` required; surfaces (GH-21), BCI (GH-28) |
 | ✅ | `cta saldo --banco <b> [--cuenta]` | `saldo` | `readOnlyHint`; `banco` required; surfaces (GH-21), BCI (GH-28) |
 | ✅ | `cta movimientos --banco <b> [--cuenta] [--desde] [--hasta]` | `movimientos` | `readOnlyHint`; `banco` required; `cobertura` per account, `--human` warns on STDERR (GH-29, ADR-014) |
-| 🚧 | `--banco demo` (with `CTA_DEMO=1`) | `banco: "demo"` | ADR-019: a fictitious bank behind the same tasks, holder and schemas; local demo login page; synthetic data dated relative to today (CTA-10) |
+| ✅ | `--banco demo` (with `CTA_DEMO=1`) | `banco: "demo"` | ADR-019: a fictitious bank behind the same tasks, holder and schemas; local demo login page; synthetic data dated relative to today (CTA-10, released in 0.3.0) |
 | 💭 | `cta importar <archivo>` (a cartola the user exported, e.g. Excel) | — | Automation without a browser or a session: parse a file the user downloads; reuses the movement normalization. Needs an ADR (input formats, dedup) |
 | ✅ | `cta tarjetas --banco <b> [--tarjeta] [--movimientos]` | `tarjetas` | `readOnlyHint`; ADR-017, ADR-018 (CTA-8): one entry per card account, CLP and USD quotas, billing dates, billed and unbilled movements; sign, due dates and USD scale confirmed against the bank's app 2026-10-07 |
 | 🔒 | `cta transferir …` | — | **Needs its own ADR** meeting ADR-008's five conditions |
