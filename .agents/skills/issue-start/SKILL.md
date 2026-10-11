@@ -1,5 +1,11 @@
-<!-- Procedure: /issue:start CTA-<n> — pick up a work item as this session's focus.
-     Token budget: ~2,000–4,000. Items live in the private Project 3 (ADR-016). -->
+---
+name: issue-start
+description: "Pick up a Project item CTA-<n> as this session's focus: read it, load its ADRs and one pattern file, create the branch, and state the objective and acceptance checklist. Invoke explicitly with the item ID."
+argument-hint: "CTA-<n>"
+disable-model-invocation: true
+metadata:
+  token-budget: "~2,000–4,000"
+---
 
 1. `gh project item-list 3 --owner albertomarturelo --format json --limit 500
    --jq '.items[] | select(.iD == "CTA-<n>") | {title, status, body: .content.body}'`.

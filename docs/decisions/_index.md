@@ -1,11 +1,13 @@
 # Architecture Decision Records
 
 Foundational decisions for `cta`. Rules ported from `albertomarturelo/sii` cite
-their lineage inside each record.
+their lineage inside each record. Numbered ADRs keep their number as ID; ADRs
+written from 2026-10-11 on are `YYYY-MM-DD-<slug>.md` and their ID is the slug
+(`adr-ids-date-slug`).
 
 | ID  | Title | Status | Date |
 | --- | ----- | ------ | ---- |
-| 001 | [Adopt Context-First Development (CFD) for this repo](001-adopt-cfd-methodology.md) | Accepted | 2026-09-23 |
+| 001 | [Adopt Context-First Development (CFD) for this repo](001-adopt-cfd-methodology.md) | Superseded in part by `adr-ids-date-slug`, `procedures-as-agent-skills` | 2026-09-23 |
 | 002 | [TypeScript + Node + pnpm-workspaces monorepo toolchain](002-typescript-node-pnpm-monorepo.md) | Accepted | 2026-09-23 |
 | 003 | [Shared core, thin surfaces, one driver per bank behind a seam](003-shared-core-bank-driver-seam.md) | Accepted | 2026-09-23 |
 | 004 | [Own-account posture, no evasion of bank controls, public MIT release](004-own-account-posture-no-evasion.md) | Accepted | 2026-09-23 |
@@ -24,3 +26,5 @@ their lineage inside each record.
 | 017 | [Credit cards — `cta tarjetas`, read with the login's grant and the cards app's own headers](017-credit-cards-surface.md) | Accepted | 2026-09-29 |
 | 018 | [The read grant comes from the orchestrator's token call and the apps' own bundles — no menu](018-grant-without-the-menu.md) | Accepted | 2026-10-07 |
 | 019 | [A fictitious `demo` bank, enabled with `CTA_DEMO=1`](019-demo-bank.md) | Accepted | 2026-10-07 |
+| `adr-ids-date-slug` | [ADR identity is a date-prefixed slug, not a sequence number](2026-10-11-adr-ids-date-slug.md) | Accepted | 2026-10-11 |
+| `procedures-as-agent-skills` | [CFD procedures ship as Agent Skills, one copy for every agent](2026-10-11-procedures-as-agent-skills.md) | Accepted | 2026-10-11 |

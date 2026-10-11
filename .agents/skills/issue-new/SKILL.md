@@ -1,5 +1,10 @@
-<!-- Procedure: /issue:new — create a self-sufficient work unit in the private Project.
-     Token budget: ~1,500–3,000. Be thorough HERE so the next session is cheap. -->
+---
+name: issue-new
+description: "Create a self-sufficient work unit as a draft item CTA-<n> in the private Project 3, with the fixed six-section body. Be thorough here so the next session is cheap. Invoke explicitly when a new unit of work needs an item."
+disable-model-invocation: true
+metadata:
+  token-budget: "~1,500–3,000"
+---
 
 Work units are **draft items in the private Project** "@albertomarturelo's cta"
 (`https://github.com/users/albertomarturelo/projects/3`), never public issues
@@ -15,14 +20,14 @@ order, confirming each answer:
 6. **ADRs to load:** at minimum ADR-003 for anything crossing the core boundary,
    ADR-004 for any bank-facing code, ADR-005 for bank selection, ADR-006 for
    auth, ADR-007 for output shapes, ADR-008 for anything near a write.
-   **If a needed decision has no ADR, STOP and run `/decision:new` first.**
+   **If a needed decision has no ADR, STOP and run `/new-decision` first.**
 7. **Acceptance criteria:** `[ ]` items covering behavior, tests (synthetic
    fixtures, no real bank) and documentation (which docs or contract file).
 8. **Reproduction:** fixes only.
 9. **Estimated sessions:** `1` | `2–3` | `4+` — if >1, split first.
 10. **Priority** (`P0`–`P2`) and **Size** (`XS`–`XL`), the Project's fields.
 
-Body (do not rename or reorder — `/issue:start` parses by header):
+Body (do not rename or reorder — `/issue-start` parses by header):
 
 ```markdown
 ## Context

@@ -46,24 +46,29 @@ git config core.hooksPath .githooks
 They block a commit, a commit message or a push that carries a real RUT, an
 email, a credential, a cookie or a forbidden file. Before opening a PR, run
 `bash scripts/pii-scan.sh --range origin/main..HEAD`, or ask your agent to run
-the [`sensitive-data-check`](.claude/skills/sensitive-data-check/SKILL.md) skill
+the [`sensitive-data-check`](.agents/skills/sensitive-data-check/SKILL.md) skill
 (ADR-009). CI runs the same scanner on your PR's commits, title and body.
 
 ## The CFD procedures
 
-`.claude/commands/` holds plain markdown procedures. **You do not need Claude
-Code** — follow them by hand or with any agent:
+`.agents/skills/<name>/SKILL.md` holds the procedures as
+[Agent Skills](https://agentskills.io/specification): Claude Code, Codex, Copilot
+and Gemini CLI discover them (`/name`, or `$name` in Codex; `.claude/skills` is a
+symlink to the same folder). **You do not need any of those agents** — each
+`SKILL.md` is plain markdown you can follow by hand:
 
-1. `session-start.md` — orient in ~1k tokens.
-2. `issue-new.md` — every work unit is an issue with the fixed 6-section body,
+1. `session-start` — orient in ~1k tokens.
+2. `issue-new` — every work unit is an issue with the fixed 6-section body,
    opened before code.
-3. `issue-start.md` — load the issue and its ADRs, create the branch.
-4. `new-decision.md` — before any decision without an ADR (a dependency, a
-   boundary, a new verb, **anything that would change bank state**).
-5. `validate-context.md` — before every push.
-6. `review-pr.md` — self-review against the context before opening the PR; the
-   maintainer runs the same procedure.
-7. `session-close.md` — update ROADMAP, CONVENTIONS and the contract doc.
+3. `issue-start` — load the issue and its ADRs, create the branch.
+4. `new-decision` — before any decision without an ADR (a dependency, a
+   boundary, a new verb, **anything that would change bank state**). New ADRs
+   are named `docs/decisions/YYYY-MM-DD-<slug>.md`; the slug is their ID.
+5. `validate-context` — before every push.
+6. `review-pr` — self-review the local diff against the context before
+   `session-close` and before opening the PR; the maintainer runs the same
+   procedure on the PR.
+7. `session-close` — update ROADMAP, CONVENTIONS and the contract doc.
 
 ## Workflow rules
 

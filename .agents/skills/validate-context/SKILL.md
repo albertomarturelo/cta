@@ -1,4 +1,9 @@
-<!-- Procedure: /context:validate — run before every push and weekly. Token budget: ~2,000–5,000. -->
+---
+name: validate-context
+description: "Audit cta's CFD context: CLAUDE.md size and shape, AGENTS.md and skills symlinks, ADR index and completeness, ROADMAP freshness, surface boundary, read-only, bank contracts, sensitive data. Report PASS/WARN/FAIL with proposed fixes. Use before every push and weekly."
+metadata:
+  token-budget: "~2,000–5,000"
+---
 
 Check, in order, and output PASS / WARN / FAIL per item:
 
@@ -10,8 +15,10 @@ Check, in order, and output PASS / WARN / FAIL per item:
    verbatim from the CFD methodology. FAIL if missing or edited.
 4. **`AGENTS.md`:** must exist and be a symlink resolving to `CLAUDE.md`
    (`git ls-files -s AGENTS.md` shows mode `120000`). FAIL otherwise.
-5. **ADR index integrity:** every `docs/decisions/[0-9]*.md` is listed in
-   `_index.md` and every row points to an existing file. FAIL on mismatch.
+5. **ADR index integrity:** every `docs/decisions/[0-9]*.md` (numbered or
+   `YYYY-MM-DD-<slug>.md`) is listed in `_index.md` and every row points to an
+   existing file. FAIL on mismatch. FAIL also if two date-prefixed ADRs share a
+   slug, or if a numbered ADR was renamed (ADR `adr-ids-date-slug`).
 6. **ADR completeness:** each ADR has Status, Context, Decision, Alternatives
    Considered, Consequences, and is ≤100 lines. FAIL on a miss.
 7. **ROADMAP freshness:** WARN if `docs/ROADMAP.md` predates the last feature
@@ -27,7 +34,12 @@ Check, in order, and output PASS / WARN / FAIL per item:
     any FAIL; list WARNs for review. Check `git config core.hooksPath` is
     `.githooks`; WARN if not.
 12. **Language:** WARN per `docs/**/*.md` file not in English.
-13. **Session memory:** `docs/CURRENT_STATUS.md` is gitignored and NOT tracked
+13. **Skills (ADR `procedures-as-agent-skills`):** `.claude/skills` is a
+    symlink to `../.agents/skills`; no `.claude/commands/`; each
+    `.agents/skills/<name>/SKILL.md` has `name: <name>`, a description and
+    `metadata.token-budget`; each `disable-model-invocation: true` skill ships
+    `agents/openai.yaml` with `allow_implicit_invocation: false`. FAIL on a miss.
+14. **Session memory:** `docs/CURRENT_STATUS.md` is gitignored and NOT tracked
     (`git ls-files docs/CURRENT_STATUS.md` is empty). FAIL if tracked.
 
 Propose concrete fixes. Do NOT auto-apply — the user reviews first.

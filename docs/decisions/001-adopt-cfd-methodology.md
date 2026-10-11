@@ -4,6 +4,8 @@
 
 Accepted — 2026-09-23. Lineage: `albertomarturelo/sii` ADR-001.
 Amended — 2026-09-24: aligned with the current CFD bootstrap (standing rules).
+Superseded in part — 2026-10-11: procedures by `procedures-as-agent-skills`,
+ADR naming by `adr-ids-date-slug`.
 
 ## Context
 

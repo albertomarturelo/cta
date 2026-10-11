@@ -1,8 +1,8 @@
-# ADR-`<NNN>`: `<Decision Title>`
+# `<Decision Title>`
 
 ## Status
 
-`<Proposed | Accepted | Superseded by ADR-XXX | Deprecated>` — `<YYYY-MM-DD>`
+`<Proposed | Accepted | Superseded by <slug> | Deprecated>` — `<YYYY-MM-DD>`
 
 ## Context
 
@@ -26,4 +26,9 @@ conventions, naming patterns, or code shapes when applicable.>
 <!--
 ADRs are persistent memory for your future self AND the AI agent. Write the
 rationale so the model knows WHY without scanning code. Keep ≤100 lines.
+-->
+
+<!--
+File name: docs/decisions/YYYY-MM-DD-<slug>.md (today's date). The slug is the
+ADR's ID: cite it as `ADR <slug>`. Never a sequence number (adr-ids-date-slug).
 -->

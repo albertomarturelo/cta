@@ -33,7 +33,8 @@ cta/                         # pnpm workspaces, TypeScript project references
 │   └── mcp/   (@albertomarturelo/cta-mcp)   # stdio MCP server for Claude Desktop / Claude Code / any MCP client
 ├── docs/                    # CFD context layer
 │   └── bank-contract/       # one observed wire contract per bank
-└── .claude/commands/        # CFD procedures (plain markdown)
+├── .agents/skills/          # CFD procedures as Agent Skills (any agent)
+└── .claude/skills -> ../.agents/skills   # Claude Code's discovery path
 ```
 
 ## Core module map
