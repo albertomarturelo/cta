@@ -22,7 +22,7 @@ money-moving operations in v1 (ADR-008).
 
 | Status | Item | Notes | ADR |
 | --- | --- | --- | --- |
-| ✅ | CFD scaffolding | docs, ADRs 001–009, procedures, CI context gate, `AGENTS.md` | 001 |
+| ✅ | CFD scaffolding | docs, ADRs 001–009, procedures, CI context gate, `AGENTS.md`; 2026-10-11: procedures as Agent Skills in `.agents/skills/` (any agent), self-review before close, new ADRs named `YYYY-MM-DD-<slug>.md` with CI slug check | 001, `procedures-as-agent-skills`, `adr-ids-date-slug` |
 | ✅ | Sensitive-data gate | `scripts/pii-scan.sh`, git hooks, CI step, `sensitive-data-check` skill | 009 |
 | ✅ | Monorepo skeleton | pnpm workspaces + `tsc -b`; core/cli/mcp stubs; versions pinned in STACK; CI build job (GH-2) | 002 |
 | ✅ | Release pipeline | `publish.yml` on `v*` tag, trusted publishing + provenance, GitHub release from `CHANGELOG.md`, package metadata (GH-4) | 010 |
