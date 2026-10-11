@@ -1,6 +1,8 @@
 ---
 name: sensitive-data-check
 description: Check that no sensitive data (RUTs, emails, credentials, cookies, tokens, account numbers, balances, movements) is about to leak into this PUBLIC repo through a commit, a commit message, a push or a pull request. Use before committing, before pushing, before opening or updating a PR, when reviewing a PR, and whenever the user asks "did anything sensitive slip in?". Implements ADR-009.
+metadata:
+  token-budget: "~1,000–3,000"
 ---
 
 # Sensitive-data check (ADR-009)

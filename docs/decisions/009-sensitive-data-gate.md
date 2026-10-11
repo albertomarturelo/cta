@@ -34,7 +34,7 @@ already listed and skips on forks.
      enabled once per clone with `git config core.hooksPath .githooks`.
   2. **CI** on every PR and push: the commit range and, on PRs, the PR title and
      body. Unlike a secret denylist, it also runs on forks.
-  3. **The agent skill** [`sensitive-data-check`](../../.claude/skills/sensitive-data-check/SKILL.md),
+  3. **The agent skill** [`sensitive-data-check`](../../.agents/skills/sensitive-data-check/SKILL.md),
      which runs the scanner and adds the human-judgement pass a regex cannot do
      (names, screenshots, pasted probe output), and says what to do on a leak.
 - The secret-held denylist from sii stays as an optional extra CI step.

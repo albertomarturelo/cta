@@ -1,5 +1,10 @@
-<!-- Procedure: /session:start — run at the BEGINNING of every working session.
-     Plain markdown: any agent or human can follow it. Token budget: ~500–1,500. -->
+---
+name: session-start
+description: "Orient at the start of a cta session: read docs/CURRENT_STATUS.md, the decisions index, the ROADMAP, the last commits and the open items of the private Project 3, in ~1k tokens, and state the focus. Invoke explicitly at the start of every working session."
+disable-model-invocation: true
+metadata:
+  token-budget: "~500–1,500"
+---
 
 Read the following, in order, then produce a brief summary:
 

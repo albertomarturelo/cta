@@ -60,7 +60,7 @@ jobs:
 
   # Pure git/bash checks — no install needed.
   validate-context:
-    name: Validate context (ADRs + index + AGENTS.md + boundaries + PII)
+    name: Validate context (ADRs + index + AGENTS.md + skills + boundaries + PII)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
@@ -83,7 +83,25 @@ jobs:
               echo "::error file=docs/decisions/_index.md::Index links to missing file: $ref"
               fail=1
             fi
-          done < <(grep -oE '\([0-9]{3}-[a-zA-Z0-9-]+\.md\)' docs/decisions/_index.md | tr -d '()' | sort -u)
+          done < <(grep -oE '\(([0-9]{3}|[0-9]{4}-[0-9]{2}-[0-9]{2})-[a-zA-Z0-9-]+\.md\)' docs/decisions/_index.md | tr -d '()' | sort -u)
+          exit $fail
+
+      - name: ADR slugs are unique; numbered ADRs are never renamed (adr-ids-date-slug)
+        run: |
+          set -euo pipefail
+          fail=0
+          dupes=$(ls docs/decisions \
+            | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-.+\.md$' \
+            | sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}-//' \
+            | sort | uniq -d)
+          if [ -n "$dupes" ]; then
+            echo "::error::Duplicate ADR slugs: $dupes. Two branches likely decided the same thing in parallel — reconcile them into one ADR or supersede one."
+            fail=1
+          fi
+          if git log --diff-filter=R --name-status --format= -- docs/decisions/ | grep -qE '^R[0-9]*\s+docs/decisions/[0-9]{3}-'; then
+            echo "::error::A numbered ADR was renamed. Numbered ADRs keep their file forever; cite new ones by slug."
+            fail=1
+          fi
           exit $fail
 
       - name: ADR completeness (5 sections, ≤100 lines)
@@ -136,6 +154,33 @@ jobs:
           fi
           exit $fail
 
+      - name: Procedures are Agent Skills (procedures-as-agent-skills)
+        run: |
+          set -euo pipefail
+          fail=0
+          if [ ! -L .claude/skills ] || [ "$(readlink .claude/skills)" != "../.agents/skills" ]; then
+            echo "::error file=.claude/skills::.claude/skills must be a symlink to ../.agents/skills."
+            fail=1
+          fi
+          if [ -e .claude/commands ]; then
+            echo "::error file=.claude/commands::.claude/commands exists; procedures live only in .agents/skills."
+            fail=1
+          fi
+          for skill in .agents/skills/*/; do
+            skill=${skill%/}; dir=$(basename "$skill"); f="$skill/SKILL.md"
+            if [ ! -f "$f" ]; then echo "::error::$skill has no SKILL.md"; fail=1; continue; fi
+            fm=$(awk 'NR==1 && /^---$/ {in_fm=1; next} in_fm && /^---$/ {exit} in_fm {print}' "$f")
+            name=$(printf '%s\n' "$fm" | sed -n 's/^name: *//p')
+            [ "$name" = "$dir" ] || { echo "::error file=$f::name '$name' does not match folder '$dir'."; fail=1; }
+            printf '%s\n' "$fm" | grep -qE '^description: *.+' || { echo "::error file=$f::Missing description."; fail=1; }
+            printf '%s\n' "$fm" | grep -qE '^  token-budget: *.+' || { echo "::error file=$f::Missing metadata.token-budget."; fail=1; }
+            if printf '%s\n' "$fm" | grep -qE '^disable-model-invocation: *true'; then
+              grep -qE 'allow_implicit_invocation: *false' "$skill/agents/openai.yaml" 2>/dev/null \
+                || { echo "::error file=$f::Manual-only skill needs agents/openai.yaml with allow_implicit_invocation: false."; fail=1; }
+            fi
+          done
+          exit $fail
+
       - name: Surface boundary (ADR-003)
         run: |
           set -euo pipefail
@@ -148,7 +193,7 @@ jobs:
       - name: No evasion tooling (ADR-004)
         run: |
           set -euo pipefail
-          if git grep -nE '(puppeteer-extra|stealth|playwright-extra|undetected|2captcha|anti-captcha|capsolver|fingerprint-(injector|generator))' -- ':!docs/' ':!.github/' ':!CLAUDE.md' ':!CONTRIBUTING.md' ':!.claude/'; then
+          if git grep -nE '(puppeteer-extra|stealth|playwright-extra|undetected|2captcha|anti-captcha|capsolver|fingerprint-(injector|generator))' -- ':!docs/' ':!.github/' ':!CLAUDE.md' ':!CONTRIBUTING.md' ':!.claude/' ':!.agents/'; then
             echo "::error::Evasion tooling referenced — ADR-004 forbids stealth, CAPTCHA solving and fingerprint spoofing."
             exit 1
           fi

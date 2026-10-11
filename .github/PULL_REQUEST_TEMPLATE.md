@@ -18,7 +18,7 @@ Refs CTA-<!-- N --> <!-- private Project item (ADR-016); outside contributors: C
 
 ## ADRs touched
 
-- ADR-NNN
+- ADR-NNN or ADR `<slug>`
 
 ## Test plan
 
