@@ -21,7 +21,7 @@ written from 2026-10-11 on are `YYYY-MM-DD-<slug>.md` and their ID is the slug
 | 012 | [Reads run in a short-lived, visible browser](012-reads-in-a-short-lived-visible-browser.md) | Superseded in part by 015 | 2026-09-24 |
 | 013 | [A login can run in the background — one per bank, tracked in core](013-login-runs-in-the-background.md) | Superseded in part by 015 | 2026-09-25 |
 | 014 | [Movements carry their coverage — a bank may return less than the range](014-movements-carry-their-coverage.md) | Accepted | 2026-09-25 |
-| 015 | [Reads over HTTP with the bank-issued token, held in memory](015-reads-over-http-with-the-bank-issued-token.md) | Accepted | 2026-09-28 |
+| 015 | [Reads over HTTP with the bank-issued token, held in memory](015-reads-over-http-with-the-bank-issued-token.md) | Accepted; amended by `newer-cta-replaces-older-holder` | 2026-09-28 |
 | 016 | [Development work items live in a private GitHub Project](016-work-items-in-a-private-project.md) | Accepted | 2026-09-28 |
 | 017 | [Credit cards — `cta tarjetas`, read with the login's grant and the cards app's own headers](017-credit-cards-surface.md) | Accepted | 2026-09-29 |
 | 018 | [The read grant comes from the orchestrator's token call and the apps' own bundles — no menu](018-grant-without-the-menu.md) | Accepted | 2026-10-07 |

@@ -64,7 +64,8 @@ function call(
  * The tasks API served by the grant holder (ADR-015): the same shape surfaces
  * already call (ADR-003), so a surface swaps its composition root, nothing else.
  * With `version`, a holder older than it stops instead of serving and the call
- * raises `HolderReplaced` (ADR newer-cta-replaces-older-holder).
+ * raises `HolderReplaced` (ADR newer-cta-replaces-older-holder); without it,
+ * nothing is ever replaced. Surfaces get it from `createHolderTasks`.
  */
 export function createRemoteTasks(
   socketPath: string = defaultHolderSocket(),

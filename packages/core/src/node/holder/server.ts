@@ -204,6 +204,8 @@ export async function startHolderServer(options: HolderServerOptions): Promise<H
     })());
 
   const server = createServer((socket) =>
+    // A request that arrives while this holder drains is still served; a login
+    // started then ends with the process (ADR newer-cta-replaces-older-holder).
     serve(tasks, options.version, socket, (stop) => {
       if (stop) void close().then(() => options.onReplaced?.());
       else void check();

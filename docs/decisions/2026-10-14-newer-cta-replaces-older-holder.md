@@ -56,3 +56,7 @@ new attended login, and the bank's tolerance for logins per day is limited.
   the newer holder; the older surface never downgrades it.
 - New protocol surface: an optional `version` field in the request and a
   `replaced` answer. Neither carries the grant or account data.
+- A narrow race stays: a login an older caller starts on the old holder after
+  it decided to stop, and before it exits, ends with the process and its
+  window closes. It needs two versions acting within milliseconds; the user
+  logs in again.
