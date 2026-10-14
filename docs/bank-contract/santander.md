@@ -39,9 +39,9 @@ A headed Playwright Chromium exposes `navigator.webdriver = true`, which
 ADR-004 forbids hiding. If the bot manager challenges or blocks that browser at
 login, the spike stops there and the bank's words are recorded verbatim.
 
-## Login
+## Login, from the public bundles
 
-Observed 2026-10-14 in public bundles, not yet exercised.
+Read 2026-10-14 in public bundles; the attended login is under "Login, observed".
 
 **Entry: `https://mibanco.santander.cl/UI.Web.HB/Private_new/frame/#/public/login?redirect=false`**
 (the page the bank's personas login uses). An Angular 12 shell
@@ -71,9 +71,10 @@ app runs as an iframe (`/login-frame`) inside other pages.
   enrollment, QR (`code_qr`), passwordless (BindID) and Touch ID. The browser
   login observed on 2026-10-14 asked for none (see below); they likely guard
   other operations (transfers, enrollment).
-- **The app stores the RUT in a cookie named `rut`.** cta must never persist
-  that cookie (ADR-012: cta never stores the RUT); an HTTP-mode driver persists
-  no cookies at all (ADR-015).
+- **The app's code reads and writes a cookie named `rut`** (not set in the
+  session observed on 2026-10-14). cta must never persist it (ADR-012: cta
+  never stores the RUT); an HTTP-mode driver persists no cookies at all
+  (ADR-015).
 
 Older entry, still on the public site: `https://banco.santander.cl/personas`
 → «Ingresar a mi banco» opens an embedded panel (RUT `d_rut`, clave `d_pin`,
@@ -81,7 +82,7 @@ optional shuffled virtual keypad) that **form-posts** to
 `https://www.santander.cl/transa/cruce.asp`. Not the entry the driver will use
 unless the attended login shows `mibanco` sends users there.
 
-## API hosts named in the bundles
+### API hosts named in the bundles
 
 - `https://apiper.santander.cl` with channel prefixes `perdsk` (desktop),
   `permov` (mobile web), `perapp` (app) — e.g. `<host>/perdsk/<service>/…`.
@@ -177,6 +178,26 @@ cta takes them from the page's own request.
   app's config (`URL_CONSULTA_SALDO_API_GEE`); recorded masked.
 - Accounts list: not yet seen as its own call (the token answer lists
   products; see above).
+
+## Formats
+
+Not yet observed: the response shapes of the reads are the next probe's job
+(money, dates, signs, account types).
+
+## Errors and blocks
+
+- No challenge, block or error page was met on 2026-10-14.
+- Session end at `exp`: the bank's page revokes the token and logs off on its
+  own (see Session). What a read answers with an expired or revoked token is
+  not yet observed.
+- The login app maps error codes to its own messages (`modal-error`,
+  `OTP_EXPIRED`, "Challenge not found."); none was seen.
+
+## Second factor on writes (for a future ADR-008 surface)
+
+Not observed. The code names SuperClave, Santander Pass, OTP, QR and
+passwordless (BindID) services; the login used none of them, so they likely
+guard operations such as transfers. Out of scope while cta is read-only.
 
 ## Not yet observed (next probe, CTA-15)
 
