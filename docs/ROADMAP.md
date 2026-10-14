@@ -45,6 +45,14 @@ money-moving operations in v1 (ADR-008).
 | ✅ | `bci` driver: HTTP reads | #38: capture the read grant at login, `readMode: 'http'`, reads from Node; entry via the orchestrator's embedded saldos app (`/modernizacion/…`, GH-36); the login opens "Mi Cuenta" → "Últimos Movimientos" itself and closes (#4); live-verified 2026-09-28 (cuentas, saldo, movimientos) | 012, 015 |
 | ✅ | `bci` driver: grant without the menu | ADR-018: the login closes on the orchestrator's own `connectors/td` token; each app's headers from its public bundle; accounts via `SolicitarClienteCuentas` (no RUT); no menu clicks. Probe 2026-10-07: every read `200` from Node; live-verified the same day through the holder (login 25 s; cuentas, saldo, movimientos, tarjetas) | 015, 018 |
 
+## Santander driver (`santander`, code 037)
+
+| Status | Item | Notes | ADR |
+| --- | --- | --- | --- |
+| ✅ | **Spike: Santander login + session** | Observed 2026-10-14: login app on `mibanco.santander.cl` (Angular, OAuth password grant made by the page), no CAPTCHA and no second factor at login; reads on `openbanking.santander.cl` with a JWT bearer that lives **10 min** and that the bank revokes at `exp`; Akamai Bot Manager and behavioral fraud scoring; runtime config obfuscated (not read). See `bank-contract/santander.md` | 004, 006, 015 |
+| 💭 | Spike: Santander reads | response shapes of balances, movements, cards; a RUT-free accounts list; whether a Node read answers | 004, 014, 015 |
+| 🔒 | `santander` driver: login + reads | needs an ADR first: a 10-min session without refresh, headers taken from the page's own requests (no bundle, ADR-018 does not fit), and RUT-bearing endpoints (cards, statements) | 012, 015, 018 |
+
 ## Surfaces
 
 | Status | CLI | MCP | Notes |
