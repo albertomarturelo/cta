@@ -15,7 +15,12 @@ import {
 } from '../../seams/fakes.js';
 import { createTasks } from '../../tasks/tasks.js';
 import { createRemoteTasks } from './client.js';
-import { HolderAlreadyRunning, HolderError, HolderUnavailable } from './protocol.js';
+import {
+  HolderAlreadyRunning,
+  HolderError,
+  HolderReplaced,
+  HolderUnavailable,
+} from './protocol.js';
 import { startHolderServer, type HolderServer } from './server.js';
 
 // Synthetic grant and data only.
@@ -57,7 +62,12 @@ function holder(data: ConstructorParameters<typeof FakeBankDriver>[3] = {}) {
 
 async function serve(
   tasks: ReturnType<typeof createTasks>,
-  extra: { onIdle?: () => void; idleGraceMs?: number } = {},
+  extra: {
+    onIdle?: () => void;
+    idleGraceMs?: number;
+    version?: string;
+    onReplaced?: () => void;
+  } = {},
 ) {
   const s = await startHolderServer({ tasks, socketPath, checkEveryMs: 10, ...extra });
   servers.push(s);
@@ -190,5 +200,61 @@ describe('grant holder (ADR-015)', () => {
     await remote.logout('bci');
     await new Promise((r) => setTimeout(r, 250));
     expect(idle).toBe(1);
+  });
+
+  describe('across an upgrade (ADR newer-cta-replaces-older-holder)', () => {
+    it('an older holder stops for a newer client and reports the sessions it held', async () => {
+      const { tasks, driver } = holder();
+      let replaced = 0;
+      await serve(tasks, { version: '0.3.0', onReplaced: () => (replaced += 1) });
+      await createRemoteTasks(socketPath, '0.3.0').login('bci');
+
+      const err = await createRemoteTasks(socketPath, '0.4.0')
+        .saldo('bci')
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(HolderReplaced);
+      expect(err).toMatchObject({ sesiones: ['bci'] });
+      expect(driver.calls).toEqual(['login']);
+      await new Promise((r) => setTimeout(r, 50));
+      expect(replaced).toBe(1);
+      await expect(stat(socketPath)).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
+    it('a newer or equal holder serves an older client: no ping-pong', async () => {
+      const { tasks } = holder();
+      await serve(tasks, { version: '0.4.0' });
+      await createRemoteTasks(socketPath, '0.4.0').login('bci');
+      expect((await createRemoteTasks(socketPath, '0.3.0').saldo('bci')).saldos).toHaveLength(1);
+      // A client from 0.3.0 or earlier sends no version and is served too.
+      expect((await createRemoteTasks(socketPath).saldo('bci')).saldos).toHaveLength(1);
+    });
+
+    it('never stops while a login is in flight', async () => {
+      let finish!: () => void;
+      const { tasks } = holder({ loginWaitsFor: new Promise<void>((r) => (finish = r)) });
+      await serve(tasks, { version: '0.3.0' });
+      await createRemoteTasks(socketPath, '0.3.0').startLogin('bci');
+      expect((await createRemoteTasks(socketPath, '0.4.0').bancos()).bancos[0]).toMatchObject({
+        loginEnCurso: true,
+      });
+      finish();
+    });
+
+    it('frees its path at once, so a holder started while it drains keeps its socket', async () => {
+      const { tasks } = holder();
+      await serve(tasks, { version: '0.3.0' });
+      // An open request that never ends keeps the old holder draining.
+      const pending = createConnection(socketPath);
+      await new Promise((r) => pending.once('connect', r));
+
+      await expect(createRemoteTasks(socketPath, '0.4.0').bancos()).rejects.toBeInstanceOf(
+        HolderReplaced,
+      );
+      await new Promise((r) => setTimeout(r, 20));
+      await serve(holder().tasks, { version: '0.4.0' });
+      pending.destroy();
+      await new Promise((r) => setTimeout(r, 50));
+      expect((await createRemoteTasks(socketPath, '0.4.0').bancos()).bancos).toHaveLength(1);
+    });
   });
 });

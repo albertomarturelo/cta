@@ -1,10 +1,11 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { NotAuthenticated } from '../../errors/errors.js';
+import { SessionEndedByUpgrade } from './protocol.js';
 import { money } from '../../money/money.js';
 import {
   FakeBankDriver,
@@ -13,7 +14,7 @@ import {
   MemoryAuditSink,
 } from '../../seams/fakes.js';
 import { createTasks } from '../../tasks/tasks.js';
-import { createHolderTasks } from './launch.js';
+import { createHolderTasks, gone } from './launch.js';
 import { startHolderServer, type HolderServer } from './server.js';
 
 // Synthetic grant and data only.
@@ -95,5 +96,71 @@ describe('holder-backed tasks for the surfaces (ADR-015)', () => {
     expect(await mcp.startLogin('bci')).toMatchObject({ banco: 'bci' });
     await cli.login('bci');
     expect(starts()).toBe(1);
+  });
+
+  describe('across an upgrade (ADR newer-cta-replaces-older-holder)', () => {
+    /** A holder of `held` already running, and a surface of `version` with its own starts. */
+    async function upgraded(held: string, version: string) {
+      const old = tasksWith();
+      servers.push(await startHolderServer({ tasks: old.tasks, socketPath, version: held }));
+      await createHolderTasks({ local: tasksWith().tasks, socketPath, version: held }).login('bci');
+      const fresh = tasksWith();
+      let starts = 0;
+      const surface = createHolderTasks({
+        local: tasksWith().tasks,
+        socketPath,
+        version,
+        startHolder: async (path: string) => {
+          starts += 1;
+          servers.push(await startHolderServer({ tasks: fresh.tasks, socketPath: path, version }));
+        },
+      });
+      return { old, fresh, surface, starts: () => starts };
+    }
+
+    it('a read says the session ended with the upgrade, then a login starts a fresh holder', async () => {
+      const { old, fresh, surface, starts } = await upgraded('0.3.0', '0.4.0');
+      const err = await surface.saldo('bci').catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(SessionEndedByUpgrade);
+      expect(err).toMatchObject({ code: 'NOT_AUTHENTICATED', exitCode: 3 });
+      expect((err as Error).message).toContain('cta login bci');
+      expect(old.driver.calls).toEqual(['login']);
+
+      // The old holder is gone: the next read is a plain "not logged in".
+      await expect(surface.saldo('bci')).rejects.toBeInstanceOf(NotAuthenticated);
+      await surface.login('bci');
+      expect(starts()).toBe(1);
+      expect((await surface.saldo('bci')).saldos).toHaveLength(1);
+      expect(fresh.driver.calls).toEqual(['login', 'saldos:*']);
+    });
+
+    it('a login replaces the older holder at once', async () => {
+      const { fresh, surface, starts } = await upgraded('0.3.0', '0.4.0');
+      await surface.login('bci');
+      expect(starts()).toBe(1);
+      expect(fresh.driver.calls).toEqual(['login']);
+    });
+
+    it('an older surface keeps using a newer holder', async () => {
+      const { old, surface, starts } = await upgraded('0.4.0', '0.3.0');
+      expect((await surface.saldo('bci')).saldos).toHaveLength(1);
+      expect(starts()).toBe(0);
+      expect(old.driver.calls).toEqual(['login', 'saldos:*']);
+    });
+
+    it('a logout on a bank whose session ended answers locally, with no error', async () => {
+      const { surface } = await upgraded('0.3.0', '0.4.0');
+      await expect(surface.logout('bci')).resolves.toMatchObject({ banco: 'bci' });
+    });
+
+    it('waits for the old socket only so long', async () => {
+      const stuck = join(dir, 'stuck.sock');
+      await writeFile(stuck, 'never removed');
+      const t = Date.now();
+      await gone(stuck, 100);
+      expect(Date.now() - t).toBeGreaterThanOrEqual(100);
+      await rm(stuck);
+      await gone(stuck, 5_000);
+    });
   });
 });

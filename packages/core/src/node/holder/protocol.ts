@@ -8,8 +8,13 @@ import { defaultCtaHome } from '../file-session-store.js';
  * The grant holder's wire protocol (ADR-015): one JSON object per line over a
  * same-user Unix socket, one request per connection.
  *
- *   → {"method": "saldo", "args": ["bci", "1111"]}
+ *   → {"method": "saldo", "args": ["bci", "1111"], "version": "0.4.0"}
  *   ← {"ok": true, "result": {…}}  |  {"ok": false, "error": {…}}
+ *   ← {"ok": false, "replaced": {"sesiones": ["bci"]}}
+ *
+ * `version` is the client's package version: a holder older than it answers
+ * `replaced` instead of serving, then exits, so an upgrade takes effect at once
+ * (ADR newer-cta-replaces-older-holder). Holders from before it ignore the field and serve as they always did.
  *
  * Only the task methods below exist: the surfaces' own API, read-only toward
  * the bank (ADR-008). No answer ever carries the grant — tasks never return it.
@@ -30,6 +35,7 @@ export type HolderMethod = (typeof HOLDER_METHODS)[number];
 export interface HolderRequest {
   readonly method: HolderMethod;
   readonly args: readonly unknown[];
+  readonly version?: string;
 }
 
 /** A `CtaError` as it crosses the socket; anything else keeps only its class. */
@@ -42,7 +48,8 @@ export interface WireError {
 
 export type HolderResponse =
   | { readonly ok: true; readonly result: unknown }
-  | { readonly ok: false; readonly error: WireError };
+  | { readonly ok: false; readonly error: WireError }
+  | { readonly ok: false; readonly replaced: { readonly sesiones: readonly string[] } };
 
 /** Largest request line accepted; task arguments are a few short strings. */
 export const MAX_REQUEST_BYTES = 16 * 1024;
@@ -97,5 +104,26 @@ export class HolderBadRequest extends CtaError {
 export class HolderAlreadyRunning extends CtaError {
   constructor() {
     super('Ya hay una sesión local de cta en ejecución.', 'HOLDER_RUNNING', 1);
+  }
+}
+
+/**
+ * The holder was older than the client and stopped instead of serving (ADR newer-cta-replaces-older-holder).
+ * `sesiones` are the banks whose session it held: they are gone with it.
+ */
+export class HolderReplaced extends CtaError {
+  constructor(readonly sesiones: readonly string[]) {
+    super('La sesión local de cta era de una versión anterior y se cerró.', 'HOLDER_REPLACED', 1);
+  }
+}
+
+/** A read on a bank whose session ended with an older holder: log in again, and why. */
+export class SessionEndedByUpgrade extends CtaError {
+  constructor(readonly banco: string) {
+    super(
+      `La sesión de '${banco}' era de una versión anterior de cta y se cerró al actualizar. Ejecuta: cta login ${banco}`,
+      'NOT_AUTHENTICATED',
+      3,
+    );
   }
 }

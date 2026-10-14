@@ -61,7 +61,8 @@ packages/core/src/
                    #   holder/: the grant holder (ADR-015) — daemon.ts (spawned
                    #   detached, exits when idle), server.ts (Unix socket, 0600),
                    #   client.ts (createRemoteTasks), launch.ts (createHolderTasks:
-                   #   what the CLI and the MCP compose)
+                   #   what the CLI and the MCP compose), version.ts (the holder's
+                   #   package version and its ordering, ADR newer-cta-replaces-older-holder)
 ```
 
 **Dependency direction:** `config`, `errors`, `money`, `dates`, `domain`, `seams` are leaves;
@@ -79,7 +80,13 @@ driver.
   is one daemon per user, on `~/.cta/holder.sock` (`0600`): the first `login`
   from the CLI or the MCP starts it, both surfaces read through it, and it exits
   once it holds no session and no login in flight. With no holder running,
-  status and reads answer locally (no live session).
+  status and reads answer locally (no live session). Every request carries the
+  caller's package version: a holder **older** than the caller stops instead of
+  serving, unless a login is in flight, and the caller carries on as with no
+  holder (a login starts a fresh one; a read on a bank whose session it held
+  says that session ended with the upgrade). A newer or equal holder serves
+  older callers, so a CLI and an MCP of different versions never take turns
+  ending each other's session. Holders from 0.3.0 or earlier ignore the version.
   MCP `login` returns once the window is open; the login ends in the background,
   one per bank at a time, and `bancos` reports how it went (ADR-013).
 - **CLI:** an agent with a shell runs `cta … | jq`. JSON is the default output.

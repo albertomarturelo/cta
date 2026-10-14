@@ -55,7 +55,9 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
   never a second tasks instance of their own for HTTP-mode reads. Only `login`
   and `startLogin` may spawn the holder; status and reads fall back to a local
   tasks instance when none runs. The holder's socket is `0600` in `~/.cta/`
-  (`0700`) and serves the task methods only; it exits when idle.
+  (`0700`) and serves the task methods only; it exits when idle. A caller
+  replaces only an **older** holder, never one with a login in flight, and says
+  which session ended with it (ADR newer-cta-replaces-older-holder).
 - **The read grant never leaves memory** (ADR-015): not in the session store,
   the audit sink, logs, errors or any output. Only its `exp` claim is decoded;
   tests build token-shaped strings at run time, never as literals (ADR-009).
