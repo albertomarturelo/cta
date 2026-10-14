@@ -14,12 +14,17 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+## 0.3.1 — 2026-10-14 — Upgrades take effect at once
+
 - After an upgrade, the first `cta` command (CLI or MCP) replaces the local
   session process left by the older version instead of talking to its old
   code. A BCI session it held ends with it: the command says so, and
   `cta login bci` starts again. A process with a login in progress is left to
-  finish. Sessions started by 0.3.0 or earlier are not replaced: they end on
-  their own, as before.
+  finish, and an older `cta` never replaces a newer one, so a CLI and an MCP
+  client on different versions do not end each other's session.
+- Upgrading from 0.3.0 or earlier: those sessions are not replaced. Run
+  `cta logout bci` (or wait for the session to expire); about two minutes
+  later the old process exits on its own.
 
 ## 0.3.0 — 2026-10-07 — A demo bank to try cta without one
 
