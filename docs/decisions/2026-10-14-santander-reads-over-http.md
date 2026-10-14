@@ -47,11 +47,12 @@ differ from BCI:
   `x-schema-id`, `x-b3-spanid`, `x-client-code`, `x-organization-code`,
   `content-type`. No cookies, no browser headers (`user-agent`, `origin`,
   `referer`, `sec-*`), no bot-manager telemetry headers.
-- **Scope:** `cuentas`, `saldo`, `movimientos`. Debit cards and statements stay
-  out while their services need the RUT; `tarjetas` answers `NotYetSupported`.
-  Movements carry `cobertura` (ADR-014) until a range read is observed.
-- **Evidence gate.** This ADR becomes Accepted, and CTA-16/17 may start, only
-  once the contract records, with dates:
+- **Scope:** `cuentas`, `saldo`, `movimientos`. `tarjetas` (credit cards,
+  ADR-017) answers `NotYetSupported` until a credit-card service is observed.
+  Debit cards and statements have no surface in cta, and their services need
+  the RUT. Movements carry `cobertura` (ADR-014) until a range read is observed.
+- **Evidence gate.** This ADR becomes Accepted, and the driver's code may be
+  written, only once the contract records, with dates:
   1. a read of balances and of movements answering `200` with the page's own
      headers only, from outside the page, before `exp`;
   2. an accounts source that needs no RUT in any request cta builds;
