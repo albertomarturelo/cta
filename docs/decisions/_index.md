@@ -28,3 +28,4 @@ written from 2026-10-11 on are `YYYY-MM-DD-<slug>.md` and their ID is the slug
 | 019 | [A fictitious `demo` bank, enabled with `CTA_DEMO=1`](019-demo-bank.md) | Accepted | 2026-10-07 |
 | `adr-ids-date-slug` | [ADR identity is a date-prefixed slug, not a sequence number](2026-10-11-adr-ids-date-slug.md) | Accepted | 2026-10-11 |
 | `procedures-as-agent-skills` | [CFD procedures ship as Agent Skills, one copy for every agent](2026-10-11-procedures-as-agent-skills.md) | Accepted | 2026-10-11 |
+| `newer-cta-replaces-older-holder` | [A newer `cta` replaces an older grant holder; never the other way round](2026-10-14-newer-cta-replaces-older-holder.md) | Accepted | 2026-10-14 |
