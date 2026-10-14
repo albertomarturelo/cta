@@ -11,11 +11,19 @@ import {
   toWireError,
   type HolderResponse,
 } from './protocol.js';
+import { compareVersions } from './version.js';
 
 export interface HolderServerOptions {
   /** The one tasks instance whose grants and logins both surfaces share (ADR-015). */
   readonly tasks: Tasks;
   readonly socketPath: string;
+  /**
+   * This holder's package version. A request from a newer client stops it
+   * (ADR newer-cta-replaces-older-holder); without it the holder serves every version.
+   */
+  readonly version?: string;
+  /** Called once the holder stopped for a newer client; the daemon exits on it. */
+  readonly onReplaced?: () => void;
   /**
    * Called once when the holder has had nothing to hold — no live session and
    * no login in flight — for `idleGraceMs`: after `exp`, a logout, or an
@@ -55,26 +63,60 @@ function fromWire(a: unknown): unknown {
   return a;
 }
 
-async function answer(tasks: Tasks, line: string): Promise<HolderResponse> {
+interface Answer {
+  readonly res: HolderResponse;
+  /** The holder answered `replaced` and must stop. */
+  readonly stop?: boolean;
+}
+
+/**
+ * A client newer than this holder replaces it (ADR newer-cta-replaces-older-holder), unless a login is in
+ * flight: the user is typing into the bank's page, and that login is served.
+ * Only newer replaces older, so a CLI and an MCP of different versions never
+ * take turns killing each other's session.
+ */
+async function replacedBy(
+  tasks: Tasks,
+  own: string | undefined,
+  client: unknown,
+): Promise<readonly string[] | undefined> {
+  if (own === undefined || typeof client !== 'string') return undefined;
+  if (!((compareVersions(client, own) ?? 0) > 0)) return undefined;
+  const { bancos } = await tasks.bancos();
+  if (bancos.some((b) => b.loginEnCurso)) return undefined;
+  return bancos.filter((b) => b.sesionHasta !== undefined).map((b) => b.banco);
+}
+
+async function answer(tasks: Tasks, own: string | undefined, line: string): Promise<Answer> {
+  const bad = { res: { ok: false, error: toWireError(new HolderBadRequest()) } } as const;
   let req: unknown;
   try {
     req = JSON.parse(line);
   } catch {
-    return { ok: false, error: toWireError(new HolderBadRequest()) };
+    return bad;
   }
-  const { method, args } = (req ?? {}) as { method?: unknown; args?: unknown };
-  if (!isHolderMethod(method) || !validArgs(args)) {
-    return { ok: false, error: toWireError(new HolderBadRequest()) };
-  }
+  const { method, args, version } = (req ?? {}) as {
+    method?: unknown;
+    args?: unknown;
+    version?: unknown;
+  };
+  if (!isHolderMethod(method) || !validArgs(args)) return bad;
   try {
+    const sesiones = await replacedBy(tasks, own, version);
+    if (sesiones) return { res: { ok: false, replaced: { sesiones } }, stop: true };
     const fn = tasks[method] as (...a: unknown[]) => Promise<unknown>;
-    return { ok: true, result: await fn(...args.map(fromWire)) };
+    return { res: { ok: true, result: await fn(...args.map(fromWire)) } };
   } catch (err) {
-    return { ok: false, error: toWireError(err) };
+    return { res: { ok: false, error: toWireError(err) } };
   }
 }
 
-function serve(tasks: Tasks, socket: Socket, done: () => void): void {
+function serve(
+  tasks: Tasks,
+  own: string | undefined,
+  socket: Socket,
+  done: (stop: boolean) => void,
+): void {
   let buf = '';
   let handled = false;
   socket.setEncoding('utf8');
@@ -87,9 +129,9 @@ function serve(tasks: Tasks, socket: Socket, done: () => void): void {
       return;
     }
     handled = true;
-    void answer(tasks, buf.slice(0, nl)).then((res) => {
+    void answer(tasks, own, buf.slice(0, nl)).then(({ res, stop }) => {
       socket.end(`${JSON.stringify(res)}\n`);
-      done();
+      done(stop === true);
     });
   });
   socket.on('error', () => socket.destroy());
@@ -150,7 +192,25 @@ export async function startHolderServer(options: HolderServerOptions): Promise<H
     }
   };
 
-  const server = createServer((socket) => serve(tasks, socket, () => void check()));
+  let closing: Promise<void> | undefined;
+  const close = () =>
+    (closing ??= (async () => {
+      clearInterval(timer);
+      // Stop listening and free the path at once, not when the last open
+      // request ends: by then a newer holder may already serve that path.
+      const drained = new Promise<void>((resolve) => server.close(() => resolve()));
+      await rm(socketPath, { force: true });
+      await drained;
+    })());
+
+  const server = createServer((socket) =>
+    // A request that arrives while this holder drains is still served; a login
+    // started then ends with the process (ADR newer-cta-replaces-older-holder).
+    serve(tasks, options.version, socket, (stop) => {
+      if (stop) void close().then(() => options.onReplaced?.());
+      else void check();
+    }),
+  );
   try {
     await listen(server, socketPath);
   } catch (err) {
@@ -165,11 +225,5 @@ export async function startHolderServer(options: HolderServerOptions): Promise<H
   timer.unref();
   void check();
 
-  return {
-    close: async () => {
-      clearInterval(timer);
-      await new Promise<void>((resolve) => server.close(() => resolve()));
-      await rm(socketPath, { force: true });
-    },
-  };
+  return { close };
 }

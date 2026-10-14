@@ -14,6 +14,13 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+- After an upgrade, the first `cta` command (CLI or MCP) replaces the local
+  session process left by the older version instead of talking to its old
+  code. A BCI session it held ends with it: the command says so, and
+  `cta login bci` starts again. A process with a login in progress is left to
+  finish. Sessions started by 0.3.0 or earlier are not replaced: they end on
+  their own, as before.
+
 ## 0.3.0 — 2026-10-07 — A demo bank to try cta without one
 
 - New demo bank: with `CTA_DEMO=1`, `--banco demo` (MCP `banco: "demo"`) is a

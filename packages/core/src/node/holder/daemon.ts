@@ -9,6 +9,7 @@ import { JsonlAuditSink } from '../jsonl-audit-sink.js';
 import { SystemClock } from '../system-clock.js';
 import { HolderAlreadyRunning, defaultHolderSocket } from './protocol.js';
 import { startHolderServer } from './server.js';
+import { holderVersion } from './version.js';
 
 // A failed login's message stays readable by `bancos` this long before exit.
 const IDLE_GRACE_MS = 2 * 60_000;
@@ -26,7 +27,10 @@ try {
   const server = await startHolderServer({
     tasks,
     socketPath,
+    version: holderVersion(),
     idleGraceMs: IDLE_GRACE_MS,
+    // A newer cta took over (ADR newer-cta-replaces-older-holder): it starts its own holder.
+    onReplaced: () => process.exit(0),
     onIdle: () => void server.close().finally(() => process.exit(0)),
   });
   const stop = () => void server.close().finally(() => process.exit(0));
