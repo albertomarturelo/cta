@@ -75,3 +75,4 @@ money-moving operations in v1 (ADR-008).
 | A new read of an existing bank | a driver method + a task + CLI command + MCP tool | contract doc updated |
 | A new verb | task + both surfaces in the same PR | a row here; an ADR if the name or scope is new |
 | Anything that changes bank state | — | **an accepted write ADR first** (ADR-008) |
+| A function only one bank has (miles, cashback, …) | that bank's own surface, not a shared verb | an ADR amending ADR-003/007 for the first one; **benefits are not planned for now** |
