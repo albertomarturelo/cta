@@ -50,8 +50,8 @@ money-moving operations in v1 (ADR-008).
 | Status | Item | Notes | ADR |
 | --- | --- | --- | --- |
 | ✅ | **Spike: Santander login + session** | Observed 2026-10-14: login app on `mibanco.santander.cl` (Angular, OAuth password grant made by the page), no CAPTCHA and no second factor at login; reads on `openbanking.santander.cl` with a JWT bearer that lives **10 min** and that the bank revokes at `exp`; Akamai Bot Manager and behavioral fraud scoring; runtime config obfuscated (not read). See `bank-contract/santander.md` | 004, 006, 015 |
-| 💭 | Spike: Santander reads | response shapes of balances, movements, cards; a RUT-free accounts list; whether a Node read answers | 004, 014, 015 |
-| 🔒 | `santander` driver: login + reads | ADR `santander-reads-over-http` (Proposed): HTTP mode within the bank's 10-min session, grant and headers from the page's own requests, `cuentas`/`saldo`/`movimientos` only (debit cards and statements need the RUT). Blocked on its evidence gate | 012, 015, 018, `santander-reads-over-http` |
+| ✅ | Spike: Santander reads | Observed 2026-10-14: `balances` and `transactions` (which takes a date range) answer `200` from Node with the allowlisted headers only; no accounts call exists (products come from the token answer); read headers live in the accounts app's plain public config. Shapes in `bank-contract/santander.md` | 004, 014, 015 |
+| 🔒 | `santander` driver: login + reads | ADR `santander-reads-over-http` (Proposed) as amended by ADR `santander-accounts-from-the-login-answer`: login ends on the token call; `access_token` and a narrow accounts subset from its answer; headers from the public config, as ADR-018 does for BCI; `cuentas`/`saldo`/`movimientos` within the 10-min session. Blocked on one equality probe (subset path ↔ `accountId`, config headers ↔ page headers) | 012, 015, 018, `santander-reads-over-http`, `santander-accounts-from-the-login-answer` |
 
 ## Surfaces
 

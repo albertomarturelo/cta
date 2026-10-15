@@ -29,4 +29,5 @@ written from 2026-10-11 on are `YYYY-MM-DD-<slug>.md` and their ID is the slug
 | `adr-ids-date-slug` | [ADR identity is a date-prefixed slug, not a sequence number](2026-10-11-adr-ids-date-slug.md) | Accepted | 2026-10-11 |
 | `procedures-as-agent-skills` | [CFD procedures ship as Agent Skills, one copy for every agent](2026-10-11-procedures-as-agent-skills.md) | Accepted | 2026-10-11 |
 | `newer-cta-replaces-older-holder` | [A newer `cta` replaces an older grant holder; never the other way round](2026-10-14-newer-cta-replaces-older-holder.md) | Accepted | 2026-10-14 |
-| `santander-reads-over-http` | [Santander reads over HTTP with the page's own grant, within the bank's session](2026-10-14-santander-reads-over-http.md) | Proposed | 2026-10-14 |
+| `santander-reads-over-http` | [Santander reads over HTTP with the page's own grant, within the bank's session](2026-10-14-santander-reads-over-http.md) | Proposed; amended by `santander-accounts-from-the-login-answer` | 2026-10-14 |
+| `santander-accounts-from-the-login-answer` | [Santander: grant and accounts from the login's answer, headers from the public config](2026-10-14-santander-accounts-from-the-login-answer.md) | Accepted | 2026-10-14 |
