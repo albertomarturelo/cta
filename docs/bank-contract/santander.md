@@ -1,6 +1,6 @@
 # Santander Chile (`santander`, code 037)
 
-Last verified: 2026-10-14 (public pages and bundles; one attended login, request metadata only)
+Last verified: 2026-10-14 (public pages and bundles; three attended logins, request metadata and JSON shapes only)
 
 Observed with plain HTTPS GETs (`curl`, its own user agent, no cookies sent),
 the way ADR-018 reads public bundles. Values below are shapes; identifiers in
@@ -31,8 +31,9 @@ but bot and fraud checks run before the user types anything:
   (`assets/web/properties-frame.js`, a string-array obfuscator; so is
   `assets/js/login-iframe.js`). Its keys include client IDs and a client secret
   by name. **cta does not deobfuscate it**: what the bank hides is not read,
-  and nothing in cta needs it — headers and the token come from the page's own
-  requests at login (ADR-015), not from the bundle (ADR-018 does not fit here).
+  and nothing in cta needs it. The accounts app reads its own, plain config
+  instead (see "Read headers from the public config"), so ADR-018's approach
+  fits after all (ADR `santander-accounts-from-the-login-answer`).
 - Analytics and monitoring: Tealium, Evergage, AppDynamics (`cdn.appdynamics.com`).
 
 A headed Playwright Chromium exposes `navigator.webdriver = true`, which
@@ -134,6 +135,11 @@ stealth; the user typed everything; the probe recorded request metadata only.
   documents (device fingerprinting, as on BCI); `mibanco…/_bm/get_params` is
   the bot manager's own call.
 
+- **Two more attended logins on 2026-10-14** (same probe rules, plus JSON
+  answers of the reads reduced to field names and value types at the source):
+  no challenge, no block, no second factor; each session ended at `exp` with
+  the page's own `logoff`.
+
 ## Session
 
 - Holder: the JWT above, in the page's memory. The `__expIn__`, `__expRf__`,
@@ -176,17 +182,74 @@ cta takes them from the page's own request.
   cta cannot build this request either.
 - `<service>` is one path segment longer than 40 characters, built from the
   app's config (`URL_CONSULTA_SALDO_API_GEE`); recorded masked.
-- Accounts list: not yet seen as its own call (the token answer lists
-  products; see above).
+- **Accounts list: no such call exists** (observed 2026-10-14, two logins,
+  every XHR/fetch of every host recorded). The home's "Cuentas" section and the
+  drawer's "Mis cuentas" render the products with no API call; the page then
+  calls `balances` with an `accountId` it already holds. The only source is the
+  token answer's product block (`MATRICES.MATRIZCAPTACIONES.e1[]`). ADR
+  `santander-accounts-from-the-login-answer` reads a narrow subset of it.
+- **No read without a click:** with the user idle on the home after landing,
+  the page sent no `openbanking` read; `balances` and `transactions` followed
+  the user opening an account. Only `session/v1/parameters` (headers
+  `authorization`, `x-client-code`, `x-organization-code`) and the fraud score
+  call ran around them.
+- **Fraud score next to every read:** `POST api-dsk…/perdsk/seguridad/Biocatch/getScore`
+  (Bearer) answers with a `policyAction`; its body carries the customer's RUT
+  (`RutCliente`, `RutUsuario`), so cta never sends it. The app's code checks
+  `policyAction === "Decline"` before showing balances and movements.
+
+### Read from Node with the page's headers only (gate item 1)
+
+Observed 2026-10-14: one `balances` and one `transactions` request, repeated
+once each from Node (`fetch`) with only `authorization`, `x-santander-client-id`,
+`x-schema-id`, `x-b3-spanid`, `x-client-code`, `x-organization-code`,
+`content-type` — no cookies, no browser headers — about 1 and 8 minutes before
+`exp`: both **`200`**, with the same answer shape the page got.
+
+### Read headers from the public config
+
+Read 2026-10-14 in public files (no login). The accounts app
+(`/UI.Web.HB/Private_new/Saldos/`, a federated module, `remoteEntrySaldos.js`)
+builds its read headers in `getApigeeHeaders()` from a global
+`propertiesGlobalCuentas`, defined in the plain, public
+`/UI.Web.HB/Private_new/Saldos/assets/web/properties.js` (not obfuscated, no
+secret by name):
+
+| Header | Source |
+| ------ | ------ |
+| `x-santander-client-id` | `X_SANTANDER_CLIENT_ID` (32 chars) |
+| `x-schema-id` | `USUARIO_ALT` (5 chars) |
+| `x-b3-spanid` | `X_B3_SPAN_ID` (17 chars, a config constant) |
+| `x-client-code`, `x-organization-code` | string literals in the app's bundle |
+| service URL | `URL_CONSULTA_SALDO_API_GEE` = `https://openbanking.santander.cl/<service>/v1/current-accounts` (the 53-char segment seen on the wire) |
+
+Values are not recorded here; a parser reads them as text at login. Whether
+they equal the page's own headers is checked by equality in the next probe.
 
 ## Formats
 
-Not yet observed: the response shapes of the reads are the next probe's job
-(money, dates, signs, account types).
+Observed 2026-10-14 (field names and value types only):
+
+- **`balances`** request `{accountId, currency, commercialGroup}` (strings;
+  `currency` 3 upper-case letters; `commercialGroup` empty). Answer
+  `{balance: {totalBalance, availableBalance, currencyCode, overdraftAgreement,
+  balanceLca, agreedTurns, draftsMade}, additionalInfo: [{key, value}]}`.
+  Amounts are **strings of digits** (integer); any of them can come back as
+  `""` for some products (which ones is not recorded here).
+- **`transactions`** request `{accountId, currency, commercialGroup,
+  openingDate, closingDate}`: **the API takes a date range**
+  (`yyyy-mm-dd`); `commercialGroup` is empty or a 3-letter code. Answer
+  `{movements: [...], additionalInfo: [{key, value}]}`, each movement
+  `{accountingDate, transactionDate (yyyy-mm-dd), operationTime?, movementAmount,
+  newBalance, chargePaymentFlag, codeOperationMovement, movementNumber,
+  observation, expandedCode}`. `movementAmount` and `newBalance` are strings,
+  not always plain digits (sign/format to pin from the next probe);
+  `chargePaymentFlag` is a short code (charge vs. payment, inferred).
+  Paging and the widest range accepted are not yet observed.
 
 ## Errors and blocks
 
-- No challenge, block or error page was met on 2026-10-14.
+- No challenge, block or error page was met on 2026-10-14 (three logins).
 - Session end at `exp`: the bank's page revokes the token and logs off on its
   own (see Session). What a read answers with an expired or revoked token is
   not yet observed.
@@ -199,19 +262,17 @@ Not observed. The code names SuperClave, Santander Pass, OTP, QR and
 passwordless (BindID) services; the login used none of them, so they likely
 guard operations such as transfers. Out of scope while cta is read-only.
 
-## Not yet observed (next probe, CTA-15)
+## Not yet observed (next probe)
 
 Same probe rules: a visible Chromium, the user types everything, metadata only,
-JSON answers reduced to field names and value types at the source, scanned
-before reading.
+JSON reduced to field names and value types at the source, scanned before
+reading; comparisons made by equality in memory, never written as values.
 
-- Response shapes (field names, money and date formats, sign) of `balances`,
-  `transactions` and `card_devices_management`; the request body of
-  `transactions` (range? paging?).
-- An accounts list the app gets without the RUT (the token answer lists
-  products, but cta must not parse that answer beyond `access_token`).
-- Credit cards (not opened in this session) and their service.
-- Whether the `<service>` segment is stable; the full header set of a read.
-- Whether a Node read with the page's own headers answers `200` — tried only
-  if the open questions above leave HTTP mode viable (10-min token, fraud
-  scoring next to reads), and never after a challenge (ADR-004).
+- Which path of the token answer's product block equals the `accountId`,
+  `currency` and `commercialGroup` the page sends (ADR
+  `santander-accounts-from-the-login-answer`).
+- Whether the headers built from `Saldos/assets/web/properties.js` equal the
+  page's own.
+- The exact format and sign of `movementAmount` and `newBalance`; paging and
+  the widest range of `transactions`.
+- Credit cards (not opened) and their service; what a read answers past `exp`.

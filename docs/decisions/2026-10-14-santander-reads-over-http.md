@@ -4,7 +4,9 @@
 
 Proposed — 2026-10-14. Becomes Accepted when the evidence gate below is met.
 Applies ADR-015 to the `santander` driver and amends ADR-018 for this bank
-only (where the read headers come from).
+only (where the read headers come from). Amended by ADR
+`santander-accounts-from-the-login-answer` (grant, accounts and headers source;
+gate items 2 and 3).
 
 ## Context
 
