@@ -65,6 +65,13 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
 - **Only the login flow mints a session** — `login` (awaited, CLI) or
   `startLogin` (background, MCP), both through one in-flight login per bank
   (ADR-013). Read tasks consume or raise `NotAuthenticated` (ADR-006).
+- **Shared verbs stay normalized; a bank may have its own functions.** `cuentas`,
+  `saldo`, `movimientos` and `tarjetas` return the same core types for every
+  bank, or `NotYetSupported`. A function only some banks have (miles, cashback,
+  a product with no equivalent) is not forced into a cross-bank model: it is
+  that bank's own surface, and banks share a verb only where their functions
+  coincide. The first bank-specific surface needs an ADR amending ADR-003 and
+  ADR-007 (owner decision, 2026-10-14). Benefits are not planned for now.
 - **A seam only one surface may use is wired in that surface's composition root,**
   never as a runtime default (lineage: sii CONVENTIONS, keyring rule).
 
