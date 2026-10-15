@@ -97,6 +97,11 @@ The CLI maps `CtaError.exitCode` (ADR-007 "documented exit code"):
   app's API headers come from its public bundle at login, by header name, and
   fail closed naming the header, never its value. A bank's client IDs never
   land in this repo — not in config, fixtures or docs.
+- **Look app by app before adding a login step.** One obfuscated config does
+  not settle where a bank's headers live: each app (federated modules,
+  `remoteEntry*.js`) may ship its own plain public config (Santander's
+  `Saldos/assets/web/properties.js`). Search those before proposing that the
+  user open a page after login. Bank files are read as text, never executed.
 - **Store only the bank's own cookies;** drop third-party cookies at login.
 - **Never retry** a login, a second factor, or a request the bank rejected.
   Surface the bank's message verbatim and stop (ADR-004).
