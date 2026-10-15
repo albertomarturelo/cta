@@ -2,11 +2,13 @@
 
 ## Status
 
-Accepted — 2026-10-14. Amends ADR `santander-reads-over-http`: replaces "the
+Accepted — 2026-10-14; amended 2026-10-15 (exact fields, product types).
+Amends ADR `santander-reads-over-http`: replaces "the
 grant comes from the page's own requests after the landing" and "the token
 endpoint's answer is never parsed", and restates its evidence-gate items 2
-and 3. ADR `santander-reads-over-http` becomes Accepted once the contract
-records the field mapping named under Decision.
+and 3. The field mapping below was recorded on 2026-10-15 (equality probe +
+the accounts app's bundle), which made ADR `santander-reads-over-http`
+Accepted.
 
 ## Context
 
@@ -37,10 +39,13 @@ app's bundle. That is ADR-018's situation on BCI.
   the user's typing. Reads never open a browser.
 - **From that answer, in memory, cta extracts exactly:** `access_token`
   (ADR-015: only `exp` decoded), and per product of
-  `MATRICES.MATRIZCAPTACIONES.e1[]` the account identifier the reads take as
-  `accountId`, the product type and the currency. Everything else —
-  `ESCALARES` (names, document number, segment), `infoUser`, amounts, card
-  fields, `refresh_token`, `tokenJWT` — is never read by name, logged, stored,
+  `CrucedeProducto.MATRICES.MATRIZCAPTACIONES.e1[]` / `.e2[]` four fields, as
+  the accounts app maps them: `OFICINACONTRATO` + `NUMEROCONTRATO`
+  (concatenated → `accountId`), `CODIGOMONEDA` (→ `currency`) and
+  `AGRUPACIONCOMERCIAL` (the product type; `commercialGroup` is `"AHR"` for
+  savings, else `""`). Everything else — amounts, `NUMEROPAN`,
+  `ESCALARES` (names, document number, segment), `infoUser`, other matrices,
+  `refresh_token`, `tokenJWT` — is never read by name, logged, stored,
   returned or passed on; the parsed object is dropped after extraction.
 - **The extractor is a pure function with an allowlist of paths**, tested on a
   synthetic answer. A missing path fails the login with a `BankError` naming
@@ -49,18 +54,25 @@ app's bundle. That is ADR-018's situation on BCI.
   parser reads `Saldos/assets/web/properties.js` and the accounts app's bundle
   for the allowlisted header values and the service URL. No code from the bank
   is executed, no file is deobfuscated, `properties-frame.js` is not read.
-  `x-b3-spanid` is taken from the config as the page does. A missing key fails
-  the login naming the file.
+  `x-b3-spanid` is taken from the config as the page does. The config's
+  `x-santander-client-id` differs from the one the page sends, and the bank
+  accepts it (2026-10-15); cta uses the config's. A missing key fails the
+  login naming the file.
 - **The RUT rule holds (ADR-012):** cta never asks for, builds or sends it; the
   document number sits only in the parsed buffer and is not touched.
-- **Products:** current accounts in any currency are `cuentas`. An overdraft
-  line is not a separate account: its figures ride on its current account's
-  `balance` (`overdraftAgreement`, `balanceLca`) and are reported only as
-  those fields if a surface adds them later (ADR-007).
-- **Remaining evidence before ADR `santander-reads-over-http` is Accepted:** one
-  probe records, by equality in memory (no values written), (1) which subset
-  path equals the `accountId`, `currency` and `commercialGroup` the page sends,
-  and (2) that the headers built from the config equal the page's own.
+- **Products:** `cuentas` are the products whose `AGRUPACIONCOMERCIAL` is
+  `CCC` (current account, any currency), `CCM` (cuenta vista) or `AHR`
+  (savings), the ones read through `current-accounts`. Every other type is
+  skipped by the extractor: `LCR` (the credit line is a product of its own,
+  with its own movements service; its figures also ride on the current
+  account's `balance` as `overdraftAgreement`, `balanceLca`), `TCR` (credit
+  cards, `NotYetSupported`), loans and mortgages. Adding one needs a contract
+  observation first.
+- **Evidence (2026-10-15):** reads built only from the config and the token
+  answered `200`; `currency` equals `CODIGOMONEDA` on the wire; the
+  `accountId` concatenation is read from the app's bundle, not yet compared on
+  the wire — the driver's first live login confirms it, and a mismatch fails
+  that login naming the step.
 
 ## Alternatives Considered
 

@@ -1,6 +1,6 @@
 # Santander Chile (`santander`, code 037)
 
-Last verified: 2026-10-14 (public pages and bundles; three attended logins, request metadata and JSON shapes only)
+Last verified: 2026-10-15 (public pages and bundles; five attended logins, request metadata and JSON shapes only)
 
 Observed with plain HTTPS GETs (`curl`, its own user agent, no cookies sent),
 the way ADR-018 reads public bundles. Values below are shapes; identifiers in
@@ -239,11 +239,12 @@ Observed 2026-10-14 (field names and value types only):
 - **`transactions`** request `{accountId, currency, commercialGroup,
   openingDate, closingDate}`: **the API takes a date range**
   (`yyyy-mm-dd`); `commercialGroup` is empty or a 3-letter code. Answer
-  `{movements: [...], additionalInfo: [{key, value}]}`, each movement
+  `{movements: [...], additionalInfo: [{key, value}]}` (sign: see "Equality
+  probe"), each movement
   `{accountingDate, transactionDate (yyyy-mm-dd), operationTime?, movementAmount,
   newBalance, chargePaymentFlag, codeOperationMovement, movementNumber,
   observation, expandedCode}`. `movementAmount` and `newBalance` are strings,
-  not always plain digits (sign/format to pin from the next probe);
+  not always plain digits (trailing minus, see "Equality probe");
   `chargePaymentFlag` is a short code (charge vs. payment, inferred).
   Paging and the widest range accepted are not yet observed.
 
@@ -262,17 +263,44 @@ Not observed. The code names SuperClave, Santander Pass, OTP, QR and
 passwordless (BindID) services; the login used none of them, so they likely
 guard operations such as transfers. Out of scope while cta is read-only.
 
-## Not yet observed (next probe)
+## Equality probe (2026-10-15)
 
-Same probe rules: a visible Chromium, the user types everything, metadata only,
-JSON reduced to field names and value types at the source, scanned before
-reading; comparisons made by equality in memory, never written as values.
+Two attended logins (same probe rules; the user opened "Mis cuentas"); the
+first missed the product block (the script looked for it at the answer's
+root), the second found it. Values compared in memory; only booleans, field
+paths, key names and formats (digits → `9`) were written.
 
-- Which path of the token answer's product block equals the `accountId`,
-  `currency` and `commercialGroup` the page sends (ADR
-  `santander-accounts-from-the-login-answer`).
-- Whether the headers built from `Saldos/assets/web/properties.js` equal the
-  page's own.
-- The exact format and sign of `movementAmount` and `newBalance`; paging and
-  the widest range of `transactions`.
-- Credit cards (not opened) and their service; what a read answers past `exp`.
+- **The token answer's product block** is
+  `CrucedeProducto.MATRICES.MATRIZCAPTACIONES.e1[]` (the app also reads
+  `.e2[]` and `MATRIZACTIVOS`). Each product has `OFICINACONTRATO`,
+  `NUMEROCONTRATO`, `CODIGOMONEDA`, `AGRUPACIONCOMERCIAL`, `PRODUCTO`,
+  `SUBPRODUCTO`, `GLOSACORTA`, `GLOSAESTADO`, `ESTADOOPERACION`,
+  `ESTADORELACION`, `CALIDADPARTICIPACION`, `CUPO`, `MONTODISPONIBLE`,
+  `MONTOUTILIZADO`, `NUMEROPAN`.
+- **Mapping to the read body** (accounts app bundle, read as text on
+  2026-10-15; `setValueProduct`, `getSaldo`): `accountId` =
+  `` `${OFICINACONTRATO}${NUMEROCONTRATO}` ``; `currency` = `CODIGOMONEDA`
+  (**equal on the wire**); `commercialGroup` = `"AHR"` when
+  `AGRUPACIONCOMERCIAL` is `AHR` (savings), else `""`. The product type is
+  `AGRUPACIONCOMERCIAL`: `CCC` current account, `CCM` cuenta vista, `AHR`
+  savings, `LCR` credit line, `TCR` credit card, `CON` consumer loan,
+  `HIP`/`HPM`/`HRP` mortgage. The concatenated `accountId` was not compared
+  on the wire. Credit-line movements use their own service
+  (`URL_MOV_LINEA_CREDITO_APIGEE`), not `transactions`.
+- **Headers built from the public config vs. the page's:** `authorization`,
+  `x-schema-id`, `x-b3-spanid`, `x-client-code`, `x-organization-code`,
+  `content-type` equal; **`x-santander-client-id` differs** (the page's comes
+  from elsewhere). The service URL equals the config's.
+- **Reads built by cta only** (config headers + `access_token`, no page
+  header): `balances` → `200`; `transactions` with a one-year range → `200`,
+  every movement within the requested range.
+- **Amount format:** `movementAmount` and `newBalance` are integer strings with
+  a **trailing minus** for negatives (`9-`); balance fields are unsigned
+  integer strings; `chargePaymentFlag` is a letter code.
+
+## Not yet observed
+
+- The `accountId` concatenation compared on the wire (the driver's first live
+  login).
+- How far back `transactions` goes; paging.
+- Credit-card reads (`TCR`) and their service; what a read answers past `exp`.
