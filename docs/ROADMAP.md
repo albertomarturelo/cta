@@ -51,7 +51,7 @@ money-moving operations in v1 (ADR-008).
 | --- | --- | --- | --- |
 | ✅ | **Spike: Santander login + session** | Observed 2026-10-14: login app on `mibanco.santander.cl` (Angular, OAuth password grant made by the page), no CAPTCHA and no second factor at login; reads on `openbanking.santander.cl` with a JWT bearer that lives **10 min** and that the bank revokes at `exp`; Akamai Bot Manager and behavioral fraud scoring; runtime config obfuscated (not read). See `bank-contract/santander.md` | 004, 006, 015 |
 | 💭 | Spike: Santander reads | response shapes of balances, movements, cards; a RUT-free accounts list; whether a Node read answers | 004, 014, 015 |
-| 🔒 | `santander` driver: login + reads | needs an ADR first: a 10-min session without refresh, headers taken from the page's own requests (no bundle, ADR-018 does not fit), and RUT-bearing endpoints (cards, statements) | 012, 015, 018 |
+| 🔒 | `santander` driver: login + reads | ADR `santander-reads-over-http` (Proposed): HTTP mode within the bank's 10-min session, grant and headers from the page's own requests, `cuentas`/`saldo`/`movimientos` only (debit cards and statements need the RUT). Blocked on its evidence gate | 012, 015, 018, `santander-reads-over-http` |
 
 ## Surfaces
 
