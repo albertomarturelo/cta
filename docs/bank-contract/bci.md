@@ -82,7 +82,8 @@ Observed 2026-09-24.
    `…-latest/comp/mi_banco/cl/bci/aplicaciones/menu/vistas/inicio/miBanco`.
    Routes, the `connectors/td` token call (`200`, ~2 s after the landing) and
    the `__Host-SESSIONID` cookie on `personas.bci.cl` are unchanged. A detector
-   that pinned `re-v<n>` never saw the landing, so the login never ended.
+   that pinned `re-v<n>` never saw the landing: the window stayed open until
+   the login's 5-minute wait ran out, and the login failed as cancelled.
    Both build forms are accepted (`re-v<n>[-<n>…]` and exactly `latest`); a
    rollout may serve either.
 

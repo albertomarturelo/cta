@@ -16,8 +16,8 @@ write it for users. This file is public: no account data, no personal facts
 
 - `cta login bci` finishes again when BCI serves its new home: the window
   closes and the command ends once «Mi Banco» loads, and `cta bancos` shows
-  the session's `sesionHasta`. Before, the login kept waiting with the window
-  open and every read answered `NOT_AUTHENTICATED` (#31).
+  the session's `sesionHasta`. Before, the window stayed open until the login
+  gave up after 5 minutes, and every read answered `NOT_AUTHENTICATED` (#31).
 
 ## 0.3.1 — 2026-10-14 — Upgrades take effect at once
 
