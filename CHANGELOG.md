@@ -14,10 +14,15 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+## 0.3.2 — 2026-11-05 — BCI login works again
+
 - `cta login bci` finishes again when BCI serves its new home: the window
   closes and the command ends once «Mi Banco» loads, and `cta bancos` shows
   the session's `sesionHasta`. Before, the window stayed open until the login
   gave up after 5 minutes, and every read answered `NOT_AUTHENTICATED` (#31).
+- Upgrading from 0.3.1: if a `cta login bci` is still waiting, close its
+  window (or let it give up), then upgrade and run `cta login bci` again. The
+  first 0.3.2 command replaces the session process 0.3.1 left running.
 
 ## 0.3.1 — 2026-10-14 — Upgrades take effect at once
 
