@@ -75,13 +75,25 @@ Observed 2026-09-24.
    the trusted-device `__Host-Device`, telemetry and analytics (observed
    2026-09-28, names only). The read entry moved with it: see "Reads from a Node
    HTTP client" (the embedded saldos app under `/modernizacion/`, GH-37).
+6. **Build segment changed (observed 2026-11-05, public report #31).** The same
+   orchestrator now lands under `/web/fe-orq-mo-personas-latest/` instead of
+   `/web/fe-orq-mo-personas-re-v1-7/`: `…-latest/home` →
+   `…-latest/cl/bci/aplicaciones/menu/index` → `…-latest/comp` →
+   `…-latest/comp/mi_banco/cl/bci/aplicaciones/menu/vistas/inicio/miBanco`.
+   Routes, the `connectors/td` token call (`200`, ~2 s after the landing) and
+   the `__Host-SESSIONID` cookie on `personas.bci.cl` are unchanged. A detector
+   that pinned `re-v<n>` never saw the landing: the window stayed open until
+   the login's 5-minute wait ran out, and the login failed as cancelled.
+   Both build forms are accepted (`re-v<n>[-<n>…]` and exactly `latest`); a
+   rollout may serve either.
 
 - **Second factor at login:** none on 2026-09-24 — the network log shows no
   second-factor request or page between the credentials POST and the landing.
 - **Success signal:** landing on `/cl/bci/aplicaciones/contenido.jsf` with
   `JSESSIONID` + `X-CSRF-TOKEN` set (2026-09-24), or on the orchestrator's
-  `…/home` or `…/comp/mi_banco/…` route with `__Host-SESSIONID` on
-  `personas.bci.cl` set (2026-09-28); both are accepted, since a
+  `…/home` or `…/comp/mi_banco/…` route, under build `re-v<n>` (2026-09-28)
+  or `latest` (2026-11-05), with `__Host-SESSIONID` on
+  `personas.bci.cl` set; all are accepted, since a
   rollout may reach users unevenly. Decide by content, not status (CONVENTIONS).
 - **Failure / lock:** not observed (no failed attempt was made, on purpose).
 

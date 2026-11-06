@@ -24,7 +24,8 @@ function parse(url: string): URL | undefined {
 /**
  * Success is decided by where the browser landed, not by a status (CONVENTIONS):
  * the JSF home (2026-09-24) or the orchestrator app that replaced it as the
- * landing (2026-09-28). Both are kept — a rollout may reach users unevenly.
+ * landing (2026-09-28), whose build segment went from "re-v1-7" to "latest"
+ * (2026-11-05). All are kept — a rollout may reach users unevenly.
  */
 export function isLoggedInUrl(url: string): boolean {
   const u = parse(url);
@@ -34,11 +35,13 @@ export function isLoggedInUrl(url: string): boolean {
   }
   const o = BCI.orchestrator;
   if (u.hostname !== o.host || !u.pathname.startsWith(o.pathPrefix)) return false;
-  // Past the prefix: "<version>/home" or "<version>/comp/mi_banco/…".
+  // Past the prefix: "<build>/home" or "<build>/comp/mi_banco/…".
   const rest = u.pathname.slice(o.pathPrefix.length);
-  const version = rest.slice(0, rest.indexOf('/'));
-  if (!/^\d+(-\d+)*$/.test(version)) return false;
-  const route = rest.slice(version.length);
+  const slash = rest.indexOf('/');
+  if (slash < 0) return false;
+  const build = rest.slice(0, slash);
+  if (!o.buildSegment.test(build)) return false;
+  const route = rest.slice(slash);
   return route === o.homeSuffix || route.startsWith(o.miBancoSegment);
 }
 

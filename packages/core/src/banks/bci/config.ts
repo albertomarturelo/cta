@@ -27,10 +27,14 @@ export const BCI = {
   // observed at https://personas.bci.cl/web/fe-orq-mo-personas-re-v1-7/home on 2026-09-28
   // (the landing after the trusted-device step moved to an orchestrator app, which
   // then routes to .../comp/mi_banco/cl/bci/aplicaciones/menu/vistas/inicio/miBanco).
-  // The version segment ("v1-7") is expected to change, so it is not pinned.
+  // observed at https://personas.bci.cl/web/fe-orq-mo-personas-latest/home on 2026-11-05
+  // (same app, same routes and token call, served under a "latest" build segment;
+  // public report #31). Only the observed build forms are accepted: "re-v<n>[-<n>…]"
+  // (its version is not pinned) and exactly "latest".
   orchestrator: {
     host: 'personas.bci.cl',
-    pathPrefix: '/web/fe-orq-mo-personas-re-v',
+    pathPrefix: '/web/fe-orq-mo-personas-',
+    buildSegment: /^(?:re-v\d+(?:-\d+)*|latest)$/,
     homeSuffix: '/home',
     miBancoSegment: '/comp/mi_banco/',
     // observed on personas.bci.cl on 2026-09-28: the only session cookie at this

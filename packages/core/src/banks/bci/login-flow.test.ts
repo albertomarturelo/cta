@@ -68,6 +68,26 @@ describe('BCI login flow (pure)', () => {
     );
   });
 
+  it('recognizes the orchestrator under the "latest" build observed on 2026-11-05', () => {
+    const base = 'https://personas.bci.cl/web/fe-orq-mo-personas-latest';
+    expect(isLoggedInUrl(`${base}/home`)).toBe(true);
+    expect(
+      isLoggedInUrl(`${base}/comp/mi_banco/cl/bci/aplicaciones/menu/vistas/inicio/miBanco`),
+    ).toBe(true);
+    // Its intermediate routes are not a landing, as under re-v<n>.
+    expect(isLoggedInUrl(`${base}/cl/bci/aplicaciones/menu/index`)).toBe(false);
+    expect(isLoggedInUrl(`${base}/comp`)).toBe(false);
+    // Only the observed build forms: no other segment, no look-alike, no other app.
+    const web = 'https://personas.bci.cl/web';
+    expect(isLoggedInUrl(`${web}/fe-orq-mo-personas-latest2/home`)).toBe(false);
+    expect(isLoggedInUrl(`${web}/fe-orq-mo-personas-beta/home`)).toBe(false);
+    expect(isLoggedInUrl(`${web}/fe-orq-mo-personas-re-latest/home`)).toBe(false);
+    expect(isLoggedInUrl(`${web}/fe-orq-mo-personas-/home`)).toBe(false);
+    expect(isLoggedInUrl(`${web}/fe-orq-mo-personas-latest`)).toBe(false);
+    expect(isLoggedInUrl(`${web}/fe-orq-mo-empresas-latest/home`)).toBe(false);
+    expect(isLoggedInUrl('https://evil.example/web/fe-orq-mo-personas-latest/home')).toBe(false);
+  });
+
   it('ends the attempt on the observed login 500 and on a challenge, nothing else', () => {
     expect(
       classifyDocumentResponse({ url: 'https://www.bci.cl/LoginJSFGenerico', status: 500 }),
