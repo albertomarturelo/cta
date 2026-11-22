@@ -344,16 +344,20 @@ was recorded.
   (its amounts are in `cupoUtilizado*`). The bank's own «Mis movimientos» shows
   the same: its tabs filter this one answer.
 - **`informacion-tdc` also carries** `mesesPeriodoCorrelativo` (not recorded on
-  2026-09-29) and `existePeridoCorrelativoAnterior` (boolean; `true` in the
-  window). `periodosFacturacion` holds six `D/M`-shaped strings.
+  2026-09-29) and `existePeridoCorrelativoAnterior` (boolean; `true` for every card on
+  2026-11-22; meaning not established). `periodosFacturacion` holds six `D/M`-shaped strings.
 - **The cards app calls nothing that takes a period** (bundle, 2026-11-22): its
   card list, `informacion-tdc`, and an export
   `POST …/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/{nacional|internacional}/{facturado|nofacturado}/excel`
   (also `…/pdf`), body `{numeroCuenta, numeroTarjeta, nombreTarjeta}` → `200
   application/json` `{contenidoArchivo, nombreArchivo}`, `contenidoArchivo` an
-  xlsx in base64 (one sheet, with comments and a drawing). Each export held the
-  same set of dates as the matching `informacion-tdc` list — nothing from the
-  just-closed cycle. The app's Excel button sends `Reference-Operation: pdf`
+  xlsx in base64 (one sheet, with comments and a drawing). The probe read only
+  the sheet's date-shaped text (shared strings are deduplicated, so this is not
+  a row count): the unbilled exports showed dates on or after the new close
+  only, like their lists; the billed export showed dates up to the previous
+  close plus one date between the two closes that its list did not have —
+  likely a header date such as the next close, not established. No export
+  showed the just-closed cycle's movements. The app's Excel button sends `Reference-Operation: pdf`
   for both formats (bundle).
 - **The «Estado de cuenta» app** (`/andes/fe-estadocuenta/`, lazy chunk
   `200.<hash>.js`) calls `POST …/ms-estadocuentapersonasweb-exp/v2.0/estado-cuenta-tc/consultar-tarjetas`
