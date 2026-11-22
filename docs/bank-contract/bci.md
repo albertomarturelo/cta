@@ -1,6 +1,6 @@
 # BCI (`bci`, code 016)
 
-Last verified: 2026-10-07 (grant without the menu: token call, public app bundles, Node reads — ADR-018); 2026-09-29 (credit cards, CTA-8); 2026-09-28 (landing move, HTTP reads, live driver reads — GH-36, GH-37, GH-38); 2026-09-25 (login, session, reads, expiry — see GH-6, GH-8, GH-15; live `cta cuentas`, `saldo`, `movimientos` runs through the driver — GH-28, GH-29; open items under "Not yet observed")
+Last verified: 2026-11-22 (a just-closed card cycle: cards and statement apps' calls and exports — CTA-23); 2026-10-07 (grant without the menu: token call, public app bundles, Node reads — ADR-018); 2026-09-29 (credit cards, CTA-8); 2026-09-28 (landing move, HTTP reads, live driver reads — GH-36, GH-37, GH-38); 2026-09-25 (login, session, reads, expiry — see GH-6, GH-8, GH-15; live `cta cuentas`, `saldo`, `movimientos` runs through the driver — GH-28, GH-29; open items under "Not yet observed")
 
 Observed with a plain, visible Playwright Chromium (1.63), no flags, no stealth,
 the login typed by hand. Values below are shapes; identifiers in `<angle>` or
@@ -326,6 +326,66 @@ card or amount value was recorded.
   (`/andes/fe-estadocuenta/`, `…/ms-estadocuentapersonasweb-exp/v2.0/estado-cuenta-tc`,
   `…/consultar-periodos` → 13 ISO dates) is a third app with its own headers.
   The debit app's request carries the RUT in its body.
+
+### A just-closed card cycle (observed 2026-11-22, CTA-23, public #34)
+
+Public bundles read without a session, then one attended probe login; the user
+opened «Mis movimientos» and «Estado de cuenta» and asked for every export by
+hand; the probe only watched. Paths, statuses, header names, body keys, shapes
+and date relations (before / between / after the two closes) only — no value
+was recorded.
+
+- **The window:** after a cycle closes and before its statement is published,
+  `informacion-tdc` keeps `fechaFacturacion` on the previous close and
+  `fechaProximaFacturacion` on the close that already passed. `facturados*`
+  hold only movements up to the previous close; `noFacturados*` start at the
+  new close (public #34; the probe counted the close day with the cycle and
+  saw only a few there). The cycle in between is in neither list
+  (its amounts are in `cupoUtilizado*`). The bank's own «Mis movimientos» shows
+  the same: its tabs filter this one answer.
+- **`informacion-tdc` also carries** `mesesPeriodoCorrelativo` (not recorded on
+  2026-09-29) and `existePeridoCorrelativoAnterior` (boolean; `true` in the
+  window). `periodosFacturacion` holds six `D/M`-shaped strings.
+- **The cards app calls nothing that takes a period** (bundle, 2026-11-22): its
+  card list, `informacion-tdc`, and an export
+  `POST …/ms-movimientostdcpersonasweb-exp/v2.0/mov-tdc/{nacional|internacional}/{facturado|nofacturado}/excel`
+  (also `…/pdf`), body `{numeroCuenta, numeroTarjeta, nombreTarjeta}` → `200
+  application/json` `{contenidoArchivo, nombreArchivo}`, `contenidoArchivo` an
+  xlsx in base64 (one sheet, with comments and a drawing). Each export held the
+  same set of dates as the matching `informacion-tdc` list — nothing from the
+  just-closed cycle. The app's Excel button sends `Reference-Operation: pdf`
+  for both formats (bundle).
+- **The «Estado de cuenta» app** (`/andes/fe-estadocuenta/`, lazy chunk
+  `200.<hash>.js`) calls `POST …/ms-estadocuentapersonasweb-exp/v2.0/estado-cuenta-tc/consultar-tarjetas`
+  (body `{}` → one entry per plastic, with `tienePeriodoNacional`,
+  `tienePeriodoInternacional`, `generandoPdf`, `bloqueado` and the cardholder's
+  name — not to be read), `…/consultar-periodos` (`{numeroCuenta,
+  numeroTarjeta, tipoEstadoCuenta: "nacional"|"internacional"}` → 13 ISO
+  dates), `…/estado-cuenta-tc` (`{numeroCuenta, numeroTarjeta}` →
+  `{numeroTdc, estadoCuentaNacional, estadoCuentaInternacional}`),
+  `…/estado-cuenta-tc/pdf` (`{numeroCuenta, tipoEstadoCuenta, periodo}`) and,
+  for its Excel button, the cards API's
+  `…/mov-tdc/{nacional|internacional}/facturado/excel` with `{numeroCuenta,
+  fechaFacturacion, numeroTarjeta, nombreTarjeta}` — here `nombreTarjeta` is
+  the cardholder's name. Its requests carry no `tracking-id` (observed) and
+  other header values than the cards app (bundle). Every call
+  answered `200` in the browser.
+- **In the window, `consultar-periodos` does not list the new close:** its
+  newest date is the previous close, for every card. The statement app
+  therefore offers no period for the just-closed cycle.
+- **`fechaFacturacion` arrives malformed:** the app splits the period on `/`
+  while `consultar-periodos` answers ISO dates, so the field is not
+  `YYYYMMDD` (letters, then the ISO date). The bank answered `200`, with the
+  same file (size and dates) as the cards app's export without the field: in
+  practice the bank serves the current billed statement whatever was sent.
+- **Not established:** a Node replay of the statement app's calls (the probe
+  lost the request headers when the browser closed; every replay went out with
+  no headers and got `401`, nothing retried), and whether `facturado/excel`
+  with a well-formed `fechaFacturacion` of an unpublished close returns that
+  cycle — no bank app sends that request.
+- **Driver rule (CTA-24):** no bank call fills the window, so `cta tarjetas`
+  cannot either; it must say that its card movements are incomplete when
+  `fechaProximaFacturacion` is before today.
 
 ### Reads from a Node HTTP client (observed 2026-09-28, GH-37)
 
