@@ -353,8 +353,8 @@ was recorded.
   application/json` `{contenidoArchivo, nombreArchivo}`, `contenidoArchivo` an
   xlsx in base64 (one sheet, with comments and a drawing). The probe read only
   the sheet's date-shaped text (shared strings are deduplicated, so this is not
-  a row count): the unbilled exports showed dates on or after the new close
-  only, like their lists; the billed export showed dates up to the previous
+  a row count): the unbilled exports' dates fell in the same ranges as their
+  lists' dates; the billed export showed dates up to the previous
   close plus one date between the two closes that its list did not have —
   likely a header date such as the next close, not established. No export
   showed the just-closed cycle's movements. The app's Excel button sends `Reference-Operation: pdf`
