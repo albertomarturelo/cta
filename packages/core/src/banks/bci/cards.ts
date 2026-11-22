@@ -117,6 +117,15 @@ function dmy(v: unknown, what: string): IsoDate {
 
 const absent = (v: unknown) => v === undefined || v === null || v === '';
 
+function bankToday(v: unknown): IsoDate | undefined {
+  if (absent(v)) return undefined;
+  try {
+    return dmy(v, 'fechaActual');
+  } catch {
+    return undefined;
+  }
+}
+
 /** A run of card-number length inside a description is masked to its last 4 (ADR-017). */
 const maskCardNumbers = (text: string) => text.replace(/\d{13,}/g, (d) => `****${d.slice(-4)}`);
 
@@ -144,11 +153,11 @@ export function coberturaTarjeta(
     return { tarjeta, completo: false };
   }
   if (proxima >= hoy) return { tarjeta, completo: true };
-  return {
-    tarjeta,
-    completo: false,
-    hueco: { desde: addDays(ultima, 1), hasta: addDays(proxima, -1) },
-  };
+  const desde = addDays(ultima, 1);
+  const hasta = addDays(proxima, -1);
+  // Closes on consecutive days leave no cycle in between, hence nothing missing.
+  if (desde > hasta) return { tarjeta, completo: true };
+  return { tarjeta, completo: false, hueco: { desde, hasta } };
 }
 
 /**
@@ -216,8 +225,10 @@ export function parseInformacionTarjeta(
       facturacion,
     },
     movimientos,
-    // observed on informacion-tdc answers on 2026-11-22: `fechaActual`, `D/M/YYYY`
-    cobertura: coberturaTarjeta(first.last4, facturacion, opt('fechaActual', dmy)),
+    // observed on informacion-tdc answers on 2026-11-22: `fechaActual`, `D/M/YYYY`.
+    // Only coverage depends on it, so another shape means "cannot vouch", never
+    // a failed read of quotas that never needed it.
+    cobertura: coberturaTarjeta(first.last4, facturacion, bankToday(json['fechaActual'])),
   };
 }
 

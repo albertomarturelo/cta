@@ -37,8 +37,10 @@ movements: return what the bank gave and say how far it reaches.
   window, as ADR-017 did for the other date fields.
 - **`completo: true` only when the driver can vouch for it:** `ultima`,
   `proxima` and `fechaActual` all present and the window not open. A missing
-  date → `completo: false` with no `hueco`. A date of another shape stays a
-  `BankError` (ADR-017).
+  date → `completo: false` with no `hueco`. A `fechaActual` of another shape
+  also → `completo: false`: only coverage depends on it, so it never fails the
+  read of quotas and dates (the other date fields stay a `BankError`,
+  ADR-017).
 - **`completo` speaks only of the gap between the last statement and today.**
   Older statements were never part of `tarjetas` (ADR-017), and that is not
   reported as incomplete.

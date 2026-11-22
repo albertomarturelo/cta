@@ -311,14 +311,20 @@ describe('BCI cards', () => {
       });
     });
 
-    it('rejects a bank date of another shape', () => {
-      expect(() => cobertura({ fechaActual: '2026-10-22' })).toThrow(BankError);
+    it('cannot vouch on a bank date of another shape, and still reads the card', () => {
+      const [account] = groupByAccount(parseTarjetasLista(lista));
+      const read = parseInformacionTarjeta(informacion({ fechaActual: '2026-10-22' }), account!);
+      expect(read.cobertura).toEqual({ tarjeta: '1111', completo: false });
+      expect(read.tarjeta.facturacion.proxima).toBe('2026-10-20');
     });
 
-    it('does not invent a gap from reversed closes', () => {
+    it('does not invent a gap from reversed or consecutive closes', () => {
       expect(
         coberturaTarjeta('1111', { ultima: '2026-10-20', proxima: '2026-09-20' }, '2026-11-01'),
       ).toEqual({ tarjeta: '1111', completo: false });
+      expect(
+        coberturaTarjeta('1111', { ultima: '2026-10-19', proxima: '2026-10-20' }, '2026-11-01'),
+      ).toEqual({ tarjeta: '1111', completo: true });
     });
   });
 });
