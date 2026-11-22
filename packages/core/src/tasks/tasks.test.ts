@@ -290,6 +290,7 @@ describe('background login (ADR-013)', () => {
     expect(await tasks.tarjetas('bci', { tarjeta: '2222', movimientos: true })).toEqual({
       banco: 'bci',
       ...tarjetas,
+      cobertura: [{ tarjeta: '2222', completo: true }],
     });
     expect(await tasks.tarjetas('016')).toEqual({ banco: 'bci', tarjetas: tarjetas.tarjetas });
     expect(driver.calls.filter((c) => c.startsWith('tarjetas'))).toEqual([

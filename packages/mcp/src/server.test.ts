@@ -169,7 +169,11 @@ describe('cta-mcp', () => {
     const summary = await call('tarjetas', { banco: 'bci' });
     expect(summary.json).toEqual({ banco: 'bci', tarjetas: tarjetas.tarjetas });
     const full = await call('tarjetas', { banco: 'bci', tarjeta: '3333', movimientos: true });
-    expect(full.json).toEqual({ banco: 'bci', ...tarjetas });
+    expect(full.json).toEqual({
+      banco: 'bci',
+      ...tarjetas,
+      cobertura: [{ tarjeta: '2222', completo: true }],
+    });
     // The schema takes only 4 digits: the SDK refuses anything else before the task.
     const bad = (await client.callTool({
       name: 'tarjetas',

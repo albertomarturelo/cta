@@ -112,6 +112,7 @@ describe('grant holder (ADR-015)', () => {
       banco: 'bci',
       tarjetas: [],
       movimientos: [],
+      cobertura: [],
     });
     expect(await cli.tarjetas('bci')).toEqual({ banco: 'bci', tarjetas: [] });
     expect(driver.calls).toEqual(['login', 'tarjetas:*:mov', 'tarjetas:*:-']);

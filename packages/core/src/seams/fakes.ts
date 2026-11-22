@@ -170,6 +170,14 @@ export class FakeBankDriver implements BankDriver {
     }
     if (query.movimientos !== true) return { tarjetas };
     const own = new Set(tarjetas.flatMap((t) => [t.tarjeta, ...(t.adicionales ?? [])]));
-    return { tarjetas, movimientos: (all.movimientos ?? []).filter((m) => own.has(m.tarjeta)) };
+    const listed = new Set(tarjetas.map((t) => t.tarjeta));
+    return {
+      tarjetas,
+      movimientos: (all.movimientos ?? []).filter((m) => own.has(m.tarjeta)),
+      // As given, else complete: the fake reports what its data says.
+      cobertura: all.cobertura
+        ? all.cobertura.filter((c) => listed.has(c.tarjeta))
+        : tarjetas.map((t) => ({ tarjeta: t.tarjeta, completo: true })),
+    };
   }
 }

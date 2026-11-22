@@ -135,7 +135,12 @@ export class DemoDriver implements BankDriver {
     }
     if (query.movimientos !== true) return { tarjetas: selected };
     const plastics = new Set(selected.flatMap((t) => [t.tarjeta, ...(t.adicionales ?? [])]));
-    return { tarjetas: selected, movimientos: movimientos.filter((m) => plastics.has(m.tarjeta)) };
+    return {
+      tarjetas: selected,
+      movimientos: movimientos.filter((m) => plastics.has(m.tarjeta)),
+      // The demo's cycles are generated around today: never a just-closed one.
+      cobertura: selected.map((t) => ({ tarjeta: t.tarjeta, completo: true })),
+    };
   }
 
   private now(): Date {

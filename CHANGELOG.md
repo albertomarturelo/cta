@@ -14,6 +14,15 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+- `cta tarjetas --movimientos` (and the MCP `tarjetas` with `movimientos`) now
+  says when a card's movements have a hole: after a billing cycle closes and
+  before its statement is published, the bank lists that cycle's purchases
+  neither as billed nor as unbilled, even though the quota counts them (#34).
+  The result gains `cobertura`, one entry per card account with `completo`
+  and, in that window, a `hueco` with the missing dates; `--human` prints a
+  warning on STDERR. No BCI call returns those purchases before the statement
+  is out — not even the bank's own app shows them.
+
 ## 0.3.2 — 2026-11-05 — BCI login works again
 
 - `cta login bci` finishes again when BCI serves its new home: the window

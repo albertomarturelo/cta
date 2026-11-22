@@ -1,6 +1,7 @@
 import type {
   BancoInfo,
   Cobertura,
+  CoberturaTarjeta,
   Cuenta,
   Money,
   Cupo,
@@ -35,6 +36,25 @@ export function coverageWarning(cobertura: readonly Cobertura[]): string | undef
       c.desde === undefined
         ? `aviso: la cuenta ${c.cuenta} no devolvió movimientos; puede haber más fuera de lo que el banco entrega.`
         : `aviso: la cuenta ${c.cuenta} solo cubre desde ${c.desde}; puede faltar lo anterior.`,
+    )
+    .join('\n');
+}
+
+/**
+ * The STDERR warning `--human` owes the reader when a card's movements do not
+ * reach today (ADR card-movements-carry-their-coverage); undefined otherwise.
+ */
+export function cardCoverageWarning(
+  cobertura: readonly CoberturaTarjeta[] | undefined,
+): string | undefined {
+  const partial = (cobertura ?? []).filter((c) => !c.completo);
+  if (partial.length === 0) return undefined;
+  return partial
+    .map((c) =>
+      c.hueco === undefined
+        ? `aviso: no puedo asegurar que los movimientos de la tarjeta ${c.tarjeta} estén completos.`
+        : `aviso: la tarjeta ${c.tarjeta} cerró un ciclo cuyo estado de cuenta aún no se publica; ` +
+          `faltan sus movimientos del ${c.hueco.desde} al ${c.hueco.hasta}.`,
     )
     .join('\n');
 }

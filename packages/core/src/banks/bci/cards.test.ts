@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BankError, NoSuchCard } from '../../errors/errors.js';
 import {
+  coberturaTarjeta,
   groupByAccount,
   matchTarjeta,
   parseInformacionTarjeta,
@@ -277,5 +278,47 @@ describe('BCI cards', () => {
     expect(() =>
       parseInformacionTarjeta(informacion({ facturadosNacionales: {} }), account!),
     ).toThrow(BankError);
+  });
+
+  describe('cobertura (a just-closed cycle)', () => {
+    const cobertura = (over: Record<string, unknown>) => {
+      const [account] = groupByAccount(parseTarjetasLista(lista));
+      return parseInformacionTarjeta(informacion(over), account!).cobertura;
+    };
+
+    it('is complete inside the cycle and on the day of the close', () => {
+      expect(cobertura({ fechaActual: '10/10/2026' })).toEqual({ tarjeta: '1111', completo: true });
+      expect(cobertura({ fechaActual: '20/10/2026' })).toEqual({ tarjeta: '1111', completo: true });
+    });
+
+    it('names the closed cycle as a gap once the bank is past the close', () => {
+      expect(cobertura({ fechaActual: '22/10/2026' })).toEqual({
+        tarjeta: '1111',
+        completo: false,
+        hueco: { desde: '2026-09-21', hasta: '2026-10-19' },
+      });
+    });
+
+    it('cannot vouch without the dates it needs', () => {
+      expect(cobertura({})).toEqual({ tarjeta: '1111', completo: false });
+      expect(cobertura({ fechaActual: '22/10/2026', fechaProximaFacturacion: null })).toEqual({
+        tarjeta: '1111',
+        completo: false,
+      });
+      expect(cobertura({ fechaActual: '22/10/2026', fechaFacturacion: null })).toEqual({
+        tarjeta: '1111',
+        completo: false,
+      });
+    });
+
+    it('rejects a bank date of another shape', () => {
+      expect(() => cobertura({ fechaActual: '2026-10-22' })).toThrow(BankError);
+    });
+
+    it('does not invent a gap from reversed closes', () => {
+      expect(
+        coberturaTarjeta('1111', { ultima: '2026-10-20', proxima: '2026-09-20' }, '2026-11-01'),
+      ).toEqual({ tarjeta: '1111', completo: false });
+    });
   });
 });

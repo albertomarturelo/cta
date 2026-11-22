@@ -1,7 +1,7 @@
 import { Command, CommanderError } from 'commander';
 import { CtaError, type Tasks } from '@albertomarturelo/cta-core';
 
-import { coverageWarning, human } from './render.js';
+import { cardCoverageWarning, coverageWarning, human } from './render.js';
 
 export interface Io {
   stdout: (text: string) => void;
@@ -194,6 +194,7 @@ export async function run(
             ...(opts.movimientos === true ? { movimientos: true } : {}),
           }),
         human.tarjetas,
+        (r) => cardCoverageWarning(r.cobertura),
       ),
     );
 
