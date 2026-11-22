@@ -101,8 +101,25 @@ export interface MovimientoTarjeta {
   readonly adicional?: true;
 }
 
-/** Card accounts of one bank and, when asked, their movements (ADR-017). */
+/**
+ * Whether one card account's movements reach from its last statement to the
+ * bank's today (ADR card-movements-carry-their-coverage). `hueco` is a cycle
+ * that closed but whose statement is not out yet: its movements are in neither
+ * list. `completo` is true only when the driver can vouch for it.
+ */
+export interface CoberturaTarjeta {
+  /** Last 4 digits, as `Tarjeta.tarjeta`. */
+  readonly tarjeta: string;
+  readonly completo: boolean;
+  readonly hueco?: { readonly desde: IsoDate; readonly hasta: IsoDate };
+}
+
+/**
+ * Card accounts of one bank and, when asked, their movements (ADR-017) with one
+ * `cobertura` per card account read.
+ */
 export interface EstadoTarjetas {
   readonly tarjetas: readonly Tarjeta[];
   readonly movimientos?: readonly MovimientoTarjeta[];
+  readonly cobertura?: readonly CoberturaTarjeta[];
 }

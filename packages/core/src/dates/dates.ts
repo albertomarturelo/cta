@@ -27,3 +27,9 @@ export function toIsoDate(input: string): IsoDate {
   }
   throw new SyntaxError(`Unrecognized date format: '${input}'`);
 }
+
+/** The calendar date `days` days after (or before, if negative) an ISO date. */
+export function addDays(date: IsoDate, days: number): IsoDate {
+  const [y, m, d] = toIsoDate(date).split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}

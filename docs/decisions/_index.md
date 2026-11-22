@@ -23,7 +23,7 @@ written from 2026-10-11 on are `YYYY-MM-DD-<slug>.md` and their ID is the slug
 | 014 | [Movements carry their coverage — a bank may return less than the range](014-movements-carry-their-coverage.md) | Accepted | 2026-09-25 |
 | 015 | [Reads over HTTP with the bank-issued token, held in memory](015-reads-over-http-with-the-bank-issued-token.md) | Accepted; amended by `newer-cta-replaces-older-holder` | 2026-09-28 |
 | 016 | [Development work items live in a private GitHub Project](016-work-items-in-a-private-project.md) | Accepted | 2026-09-28 |
-| 017 | [Credit cards — `cta tarjetas`, read with the login's grant and the cards app's own headers](017-credit-cards-surface.md) | Accepted | 2026-09-29 |
+| 017 | [Credit cards — `cta tarjetas`, read with the login's grant and the cards app's own headers](017-credit-cards-surface.md) | Accepted; amended by `card-movements-carry-their-coverage` | 2026-09-29 |
 | 018 | [The read grant comes from the orchestrator's token call and the apps' own bundles — no menu](018-grant-without-the-menu.md) | Accepted | 2026-10-07 |
 | 019 | [A fictitious `demo` bank, enabled with `CTA_DEMO=1`](019-demo-bank.md) | Accepted | 2026-10-07 |
 | `adr-ids-date-slug` | [ADR identity is a date-prefixed slug, not a sequence number](2026-10-11-adr-ids-date-slug.md) | Accepted | 2026-10-11 |
@@ -31,3 +31,4 @@ written from 2026-10-11 on are `YYYY-MM-DD-<slug>.md` and their ID is the slug
 | `newer-cta-replaces-older-holder` | [A newer `cta` replaces an older grant holder; never the other way round](2026-10-14-newer-cta-replaces-older-holder.md) | Accepted | 2026-10-14 |
 | `santander-reads-over-http` | [Santander reads over HTTP with the page's own grant, within the bank's session](2026-10-14-santander-reads-over-http.md) | Accepted; amended by `santander-accounts-from-the-login-answer` | 2026-10-14 |
 | `santander-accounts-from-the-login-answer` | [Santander: grant and accounts from the login's answer, headers from the public config](2026-10-14-santander-accounts-from-the-login-answer.md) | Accepted; amended 2026-10-15 | 2026-10-14 |
+| `card-movements-carry-their-coverage` | [Card movements carry their coverage — a just-closed cycle is a gap, said out loud](2026-11-22-card-movements-carry-their-coverage.md) | Accepted | 2026-11-22 |

@@ -133,7 +133,33 @@ describe('cta CLI', () => {
     expect(JSON.parse(out[0]!)).toEqual({ banco: 'bci', tarjetas: tarjetas.tarjetas });
     out.length = 0;
     expect(await exec('tarjetas', '--banco', 'bci', '--tarjeta', '3333', '--movimientos')).toBe(0);
-    expect(JSON.parse(out[0]!)).toEqual({ banco: 'bci', ...tarjetas });
+    expect(JSON.parse(out[0]!)).toEqual({
+      banco: 'bci',
+      ...tarjetas,
+      cobertura: [{ tarjeta: '2222', completo: true }],
+    });
+  });
+
+  it('tarjetas --human warns on STDERR when a closed cycle is missing (cobertura)', async () => {
+    const hueco = { desde: '2026-09-21', hasta: '2026-10-19' };
+    const { exec, out, err } = cli({
+      tarjetas: { ...tarjetas, cobertura: [{ tarjeta: '2222', completo: false, hueco }] },
+    });
+    await exec('login', 'bci');
+    out.length = 0;
+    err.length = 0;
+    expect(await exec('tarjetas', '--banco', 'bci', '--movimientos', '--human')).toBe(0);
+    expect(err.join('\n')).toContain(
+      'aviso: la tarjeta 2222 cerró un ciclo cuyo estado de cuenta aún no se publica; ' +
+        'faltan sus movimientos del 2026-09-21 al 2026-10-19.',
+    );
+    expect(out.join('\n')).not.toContain('aviso');
+    // JSON carries it as data, with no warning line.
+    out.length = 0;
+    err.length = 0;
+    expect(await exec('tarjetas', '--banco', 'bci', '--movimientos')).toBe(0);
+    expect(JSON.parse(out[0]!).cobertura).toEqual([{ tarjeta: '2222', completo: false, hueco }]);
+    expect(err).toEqual([]);
   });
 
   it('tarjetas --human shows quotas once per account and each movement', async () => {

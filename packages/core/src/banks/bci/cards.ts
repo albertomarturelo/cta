@@ -1,5 +1,11 @@
-import { toIsoDate, type IsoDate } from '../../dates/dates.js';
-import type { Cupo, Facturacion, MovimientoTarjeta, Tarjeta } from '../../domain/types.js';
+import { addDays, toIsoDate, type IsoDate } from '../../dates/dates.js';
+import type {
+  CoberturaTarjeta,
+  Cupo,
+  Facturacion,
+  MovimientoTarjeta,
+  Tarjeta,
+} from '../../domain/types.js';
 import { BankError, NoSuchCard } from '../../errors/errors.js';
 import { money, parseDecimalAmount, type Moneda, type Money } from '../../money/money.js';
 import type { CardRef } from '../../seams/seams.js';
@@ -111,6 +117,15 @@ function dmy(v: unknown, what: string): IsoDate {
 
 const absent = (v: unknown) => v === undefined || v === null || v === '';
 
+function bankToday(v: unknown): IsoDate | undefined {
+  if (absent(v)) return undefined;
+  try {
+    return dmy(v, 'fechaActual');
+  } catch {
+    return undefined;
+  }
+}
+
 /** A run of card-number length inside a description is masked to its last 4 (ADR-017). */
 const maskCardNumbers = (text: string) => text.replace(/\d{13,}/g, (d) => `****${d.slice(-4)}`);
 
@@ -123,6 +138,29 @@ const LISTS = [
 ] as const;
 
 /**
+ * Between a cycle's close and its statement's publication the bank keeps the
+ * previous statement as billed and lists as unbilled only what comes after the
+ * passed close, so that cycle is in neither list; no bank call fills it
+ * (contract, "A just-closed card cycle"). Judged against the bank's own date
+ * from the same answer, never a clock (ADR card-movements-carry-their-coverage).
+ */
+export function coberturaTarjeta(
+  tarjeta: string,
+  { ultima, proxima }: Facturacion,
+  hoy: IsoDate | undefined,
+): CoberturaTarjeta {
+  if (ultima === undefined || proxima === undefined || hoy === undefined || ultima >= proxima) {
+    return { tarjeta, completo: false };
+  }
+  if (proxima >= hoy) return { tarjeta, completo: true };
+  const desde = addDays(ultima, 1);
+  const hasta = addDays(proxima, -1);
+  // Closes on consecutive days leave no cycle in between, hence nothing missing.
+  if (desde > hasta) return { tarjeta, completo: true };
+  return { tarjeta, completo: false, hueco: { desde, hasta } };
+}
+
+/**
  * `POST informacion-tdc` for one card account: quotas, billing dates and the
  * billed and unbilled movements. Inferred until the live run (contract): a
  * positive bank `monto` is a cargo, so it is negated (ADR-007).
@@ -130,7 +168,7 @@ const LISTS = [
 export function parseInformacionTarjeta(
   json: unknown,
   account: CardAccount,
-): { tarjeta: Tarjeta; movimientos: MovimientoTarjeta[] } {
+): { tarjeta: Tarjeta; movimientos: MovimientoTarjeta[]; cobertura: CoberturaTarjeta } {
   if (!isRecord(json)) throw unexpected('tarjeta');
   // A national failure is the bank's own message; the international one comes
   // with empty lists for a card with no international billing (contract).
@@ -187,6 +225,10 @@ export function parseInformacionTarjeta(
       facturacion,
     },
     movimientos,
+    // observed on informacion-tdc answers on 2026-11-22: `fechaActual`, `D/M/YYYY`.
+    // Only coverage depends on it, so another shape means "cannot vouch", never
+    // a failed read of quotas that never needed it.
+    cobertura: coberturaTarjeta(first.last4, facturacion, bankToday(json['fechaActual'])),
   };
 }
 

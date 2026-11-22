@@ -76,6 +76,7 @@ describe('DemoDriver (ADR-019)', () => {
     const all = await driver().tarjetas(auth, {});
     expect(all.tarjetas).toHaveLength(2);
     expect(all.movimientos).toBeUndefined();
+    expect(all.cobertura).toBeUndefined();
     const additional = all.tarjetas.find((t) => t.adicionales !== undefined)!;
     const one = await driver().tarjetas(auth, {
       tarjeta: additional.adicionales![0]!,
@@ -84,6 +85,8 @@ describe('DemoDriver (ADR-019)', () => {
     expect(one.tarjetas.map((t) => t.tarjeta)).toEqual([additional.tarjeta]);
     const plastics = [additional.tarjeta, ...additional.adicionales!];
     expect(one.movimientos!.every((m) => plastics.includes(m.tarjeta))).toBe(true);
+    // Demo cycles are built around today: never a just-closed one.
+    expect(one.cobertura).toEqual([{ tarjeta: additional.tarjeta, completo: true }]);
     await expect(driver().tarjetas(auth, { tarjeta: '0000' })).rejects.toBeInstanceOf(NoSuchCard);
   });
 });

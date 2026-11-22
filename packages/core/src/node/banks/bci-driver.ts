@@ -26,6 +26,7 @@ import {
 import type {
   Cartola,
   Cobertura,
+  CoberturaTarjeta,
   Cuenta,
   EstadoTarjetas,
   Movimiento,
@@ -316,6 +317,7 @@ export class BciDriver implements BankDriver {
       query.tarjeta === undefined ? accounts : [matchTarjeta(accounts, query.tarjeta)];
     const tarjetas: Tarjeta[] = [];
     const movimientos: MovimientoTarjeta[] = [];
+    const cobertura: CoberturaTarjeta[] = [];
     for (const account of selected) {
       // The body the app itself sends (contract): both keys from its card list.
       const json = await this.post(cards.headers, BCI.api.informacionTarjeta, {
@@ -325,8 +327,9 @@ export class BciDriver implements BankDriver {
       const read = parseInformacionTarjeta(json, account);
       tarjetas.push(read.tarjeta);
       movimientos.push(...read.movimientos);
+      cobertura.push(read.cobertura);
     }
-    return query.movimientos === true ? { tarjetas, movimientos } : { tarjetas };
+    return query.movimientos === true ? { tarjetas, movimientos, cobertura } : { tarjetas };
   }
 
   /** HTTP mode reads with the held grant only; stored cookies are not a session here. */
