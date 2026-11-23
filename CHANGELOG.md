@@ -14,6 +14,8 @@ write it for users. This file is public: no account data, no personal facts
 
 ## Unreleased
 
+## 0.3.3 — 2026-11-22 — Card movements say when a closed cycle is missing
+
 - `cta tarjetas --movimientos` (and the MCP `tarjetas` with `movimientos`) now
   says when a card's movements have a hole: after a billing cycle closes and
   before its statement is published, the bank lists that cycle's purchases
@@ -22,6 +24,8 @@ write it for users. This file is public: no account data, no personal facts
   and, in that window, a `hueco` with the missing dates; `--human` prints a
   warning on STDERR. No BCI call returns those purchases before the statement
   is out — not even the bank's own app shows them.
+- Upgrading from 0.3.2: the first 0.3.3 command replaces the session process
+  0.3.2 left running, which ends that session; run `cta login bci` again.
 
 ## 0.3.2 — 2026-11-05 — BCI login works again
 
